@@ -303,7 +303,31 @@ class E320RootBeamlineAlignmentWriter:
             alignmentLongNdf: int,
             alignmentShortNdf: int,
             alignmentCov: npt.NDArray[np.float64], 
-            bpmCovs: list[npt.NDArray[np.bool]]) -> None:
+            bpmCovs: list[npt.NDArray[np.float64]]) -> None:
+        """
+        Write alignment parameters
+
+        bpmPositions: BPM positions [bpm0, bpm1, bpm2, bpm3], [m]
+        bpmPositionConstraintsMeans: BPM position constraint means [bpm0, bpm1, bpm2, bpm3], [m] 
+        bpmPositionConstraintsSigmas: BPM position constraint uncertainties [bpm0, bpm1, bpm2, bpm3], [m]  
+        quadPositions: quad positions [quad1, quad2, quad3], [m]  
+        quadTilts: quad tilts [quad1, quad2, quad3], [rad] 
+        quadPositionConstraintsMeans: quad position constraint means [quad1, quad2, quad3], [m]  
+        quadTiltConstraintsMeans: quad tilt constraint means [quad1, quad2, quad3], [m]  
+        quadPositionConstraintsSigmas: quad position constraint uncertainties [quad1, quad2, quad3], [m]    
+        quadTiltConstraintsSigmas: quad tilt constraint uncertainties [quad1, quad2, quad3], [m]     
+        bpmFree: BPMs fit status (floating == True, fixed == False) [bpm0, bpm1, bpm2, bpm3]
+        quadShiftsFree: quad shifts fit status (floating == True, fixed == False) [bpm0, bpm1, bpm2, bpm3] 
+        quadTiltsFree: quad tilts fit status (floating == True, fixed == False) [bpm0, bpm1, bpm2, bpm3]  
+        alignmentLongChi2: alignment fit chi2 in the long direction
+        alignmentShortChi2: alignment fit chi2 in the short direction
+        alignmentLongNdf: alignment fit ndf in the long direction
+        alignmentShortNdf: alignment fit ndf in the short direction
+        alignmentCov: alignment fit covariance in the format 
+            [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3]_Short X [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3]_Long, [m, rad]
+        bpmCovs: BPM covariances used in the alignment fit in the format: 
+            [bpm0_x X bpm0_y, bpm1_x X bpm1_y, bpm2_x X bpm2_y, bpm3_x X bpm3_y], [m]
+        """
         # Clear the vectors
         self.bpmHitCovs.clear()
         self.bpmFree.clear()
@@ -380,33 +404,33 @@ class E320RootBeamlineAlignmentWriter:
 
         # Quad tilts [rad]
         self.quad1Tilt.Set(quadTilts[0][0], quadTilts[0][1])
-        self.quad2Tilt.Set(quadTilts[1][0], quadTilts[0][1])
-        self.quad3Tilt.Set(quadTilts[2][0], quadTilts[0][1])
+        self.quad2Tilt.Set(quadTilts[1][0], quadTilts[1][1])
+        self.quad3Tilt.Set(quadTilts[2][0], quadTilts[2][1])
 
         # Quad shifts constraints means [mm]
         self.quad1PositionConstraintsMean.SetXYZ(
                 quadPositionConstraintsMeans[0][2] * 1e3,
                 quadPositionConstraintsMeans[0][1] * 1e3,
-                quadPositionConstraintsMeans[0][0] * 1e3)
+                -quadPositionConstraintsMeans[0][0] * 1e3)
         self.quad2PositionConstraintsMean.SetXYZ(
                 quadPositionConstraintsMeans[1][2] * 1e3,
                 quadPositionConstraintsMeans[1][1] * 1e3,
-                quadPositionConstraintsMeans[1][0] * 1e3)
+                -quadPositionConstraintsMeans[1][0] * 1e3)
         self.quad3PositionConstraintsMean.SetXYZ(
                 quadPositionConstraintsMeans[2][2] * 1e3,
                 quadPositionConstraintsMeans[2][1] * 1e3,
-                quadPositionConstraintsMeans[2][0] * 1e3)
+                -quadPositionConstraintsMeans[2][0] * 1e3)
 
         # Quad tilts constraints means [rad]
         self.quad1TiltConstraintsMean.Set(
                 quadTiltConstraintsMeans[0][0],
                 quadTiltConstraintsMeans[0][1])
         self.quad2TiltConstraintsMean.Set(
-                quadTiltConstraintsMeans[0][0],
-                quadTiltConstraintsMeans[0][1])
+                quadTiltConstraintsMeans[1][0],
+                quadTiltConstraintsMeans[1][1])
         self.quad3TiltConstraintsMean.Set(
-                quadTiltConstraintsMeans[0][0],
-                quadTiltConstraintsMeans[0][1])
+                quadTiltConstraintsMeans[2][0],
+                quadTiltConstraintsMeans[2][1])
 
         # Quad shifts constraints uncertainties [mm]
         self.quad1PositionConstraintsSigma.SetXYZ(
@@ -414,24 +438,24 @@ class E320RootBeamlineAlignmentWriter:
                 quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
                 quadPositionConstraintsSigmas[0][0] * 1e3 if quadPositionConstraintsSigmas[0][0] != np.inf else -1)
         self.quad2PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1)
+                quadPositionConstraintsSigmas[1][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1)
         self.quad3PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1)
+                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[2][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1)
 
         # Quad tilts constraints uncertainties [rad]
         self.quad1TiltConstraintsSigma.Set(
                 quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
                 quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
         self.quad2TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+                quadTiltConstraintsSigmas[1][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[1][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
         self.quad3TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+                quadTiltConstraintsSigmas[2][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[2][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
 
         # BPM fit status (true == floating, false == fixed)
         # [bpm0, bpm1, bpm2, bpm3]
@@ -472,6 +496,6 @@ class E320RootBeamlineAlignmentWriter:
         dimX, dimY = alignmentCov.shape
         for i in range(dimX):
             for j in range(dimY):
-                self.alignmentCov[i][j] = alignmentCov[i, j]
+                self.alignmentCov[i][j] = alignmentCov[i, j] * 1e6
 
         self.tree.Fill()
