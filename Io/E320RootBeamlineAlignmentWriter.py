@@ -7,9 +7,6 @@ from ctypes import c_int, c_double
 class E320RootBeamlineAlignmentWriter:
     """
     Alignment parameters writer
-
-    The alignment is written as vectors. 
-    The convention is [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3] separate for X and Y.
     """
     class Config:
         """
@@ -324,10 +321,70 @@ class E320RootBeamlineAlignmentWriter:
         alignmentLongNdf: alignment fit ndf in the long direction
         alignmentShortNdf: alignment fit ndf in the short direction
         alignmentCov: alignment fit covariance in the format 
-            [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3]_Short X [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3]_Long, [m, rad]
+            [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3, quad1Tilt, quad2Tilt, quad3Tilt]_Short X 
+            [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3, quad1Tilt, quad2Tilt, quad3Tilt]_Long, [m, rad]
         bpmCovs: BPM covariances used in the alignment fit in the format: 
             [bpm0_x X bpm0_y, bpm1_x X bpm1_y, bpm2_x X bpm2_y, bpm3_x X bpm3_y], [m]
         """
+        def getSigma(value: float, scale: float) -> float:
+            """
+            Convert a constraint uncertainty for writing
+
+            value: uncertainty, np.inf -> unconstrained
+            scale: unit conversion factor
+
+            return: stored uncertainty, -1 -> unconstrained
+            """
+            if (value == np.inf):
+                return -1
+            return value * scale
+
+        def setPosition(vec: ROOT.TVector3, position: npt.NDArray[np.float64]) -> None:
+            """
+            Set a position vector, stored as [z, y, -x] [mm]
+
+            vec: TVector3 member to be set
+            position: position [x, y, z] [m]
+            """
+            vec.SetXYZ(
+                    position[2] * 1e3,
+                    position[1] * 1e3,
+                    -position[0] * 1e3)
+
+        def setPositionSigma(vec: ROOT.TVector3, sigma: npt.NDArray[np.float64]) -> None:
+            """
+            Set a position uncertainty vector, stored as [z, y, x] [mm]
+
+            vec: TVector3 member to be set
+            sigma: position uncertainty [x, y, z] [m], np.inf -> unconstrained
+            """
+            vec.SetXYZ(
+                    getSigma(sigma[2], 1e3),
+                    getSigma(sigma[1], 1e3),
+                    getSigma(sigma[0], 1e3))
+
+        def setAngles(vec: ROOT.TVector2, angles: npt.NDArray[np.float64]) -> None:
+            """
+            Set a quad angles vector, stored as [pitch, yaw] [rad]
+
+            vec: TVector2 member to be set
+            angles: angles [pitch, yaw] [rad]
+            """
+            vec.Set(
+                    angles[0],
+                    angles[1])
+
+        def setAnglesSigma(vec: ROOT.TVector2, sigma: npt.NDArray[np.float64]) -> None:
+            """
+            Set a quad angles uncertainty vector, stored as [pitch, yaw] [rad]
+
+            vec: TVector2 member to be set
+            sigma: angles uncertainty [pitch, yaw] [rad], np.inf -> unconstrained
+            """
+            vec.Set(
+                    getSigma(sigma[0], 1.0),
+                    getSigma(sigma[1], 1.0))
+
         # Clear the vectors
         self.bpmHitCovs.clear()
         self.bpmFree.clear()
@@ -335,127 +392,52 @@ class E320RootBeamlineAlignmentWriter:
         self.quadTiltsFree.clear()
 
         # BPM positions [mm]
-        self.bpm0Position.SetXYZ(
-                bpmPositions[0][2] * 1e3,
-                bpmPositions[0][1] * 1e3,
-                -bpmPositions[0][0] * 1e3)
-        self.bpm1Position.SetXYZ(
-                bpmPositions[1][2] * 1e3,
-                bpmPositions[1][1] * 1e3,
-                -bpmPositions[1][0] * 1e3)
-        self.bpm2Position.SetXYZ(
-                bpmPositions[2][2] * 1e3,
-                bpmPositions[2][1] * 1e3,
-                -bpmPositions[2][0] * 1e3)
-        self.bpm3Position.SetXYZ(
-                bpmPositions[3][2] * 1e3,
-                bpmPositions[3][1] * 1e3,
-                -bpmPositions[3][0] * 1e3)
+        setPosition(self.bpm0Position, bpmPositions[0])
+        setPosition(self.bpm1Position, bpmPositions[1])
+        setPosition(self.bpm2Position, bpmPositions[2])
+        setPosition(self.bpm3Position, bpmPositions[3])
 
         # BPM constraints means [mm]
-        self.bpm0PositionConstraintsMean.SetXYZ(
-                bpmPositionConstraintsMeans[0][2] * 1e3,
-                bpmPositionConstraintsMeans[0][1] * 1e3,
-                -bpmPositionConstraintsMeans[0][0] * 1e3)
-        self.bpm1PositionConstraintsMean.SetXYZ(
-                bpmPositionConstraintsMeans[1][2] * 1e3,
-                bpmPositionConstraintsMeans[1][1] * 1e3,
-                -bpmPositionConstraintsMeans[1][0] * 1e3)
-        self.bpm2PositionConstraintsMean.SetXYZ(
-                bpmPositionConstraintsMeans[2][2] * 1e3,
-                bpmPositionConstraintsMeans[2][1] * 1e3,
-                -bpmPositionConstraintsMeans[2][0] * 1e3)
-        self.bpm3PositionConstraintsMean.SetXYZ(
-                bpmPositionConstraintsMeans[3][2] * 1e3,
-                bpmPositionConstraintsMeans[3][1] * 1e3,
-                -bpmPositionConstraintsMeans[3][0] * 1e3)
+        setPosition(self.bpm0PositionConstraintsMean, bpmPositionConstraintsMeans[0])
+        setPosition(self.bpm1PositionConstraintsMean, bpmPositionConstraintsMeans[1])
+        setPosition(self.bpm2PositionConstraintsMean, bpmPositionConstraintsMeans[2])
+        setPosition(self.bpm3PositionConstraintsMean, bpmPositionConstraintsMeans[3])
 
         # BPM constraints uncertainties [mm]
-        self.bpm0PositionConstraintsSigma.SetXYZ(
-                bpmPositionConstraintsSigmas[0][2] * 1e3 if bpmPositionConstraintsSigmas[0][2] != np.inf else -1,
-                bpmPositionConstraintsSigmas[0][1] * 1e3 if bpmPositionConstraintsSigmas[0][1] != np.inf else -1,
-                bpmPositionConstraintsSigmas[0][0] * 1e3 if bpmPositionConstraintsSigmas[0][0] != np.inf else -1)
-        self.bpm1PositionConstraintsSigma.SetXYZ(
-                bpmPositionConstraintsSigmas[1][2] * 1e3 if bpmPositionConstraintsSigmas[1][2] != np.inf else -1,
-                bpmPositionConstraintsSigmas[1][1] * 1e3 if bpmPositionConstraintsSigmas[1][1] != np.inf else -1,
-                bpmPositionConstraintsSigmas[1][0] * 1e3 if bpmPositionConstraintsSigmas[1][0] != np.inf else -1)
-        self.bpm2PositionConstraintsSigma.SetXYZ(
-                bpmPositionConstraintsSigmas[2][2] * 1e3 if bpmPositionConstraintsSigmas[2][2] != np.inf else -1,
-                bpmPositionConstraintsSigmas[2][1] * 1e3 if bpmPositionConstraintsSigmas[2][1] != np.inf else -1,
-                bpmPositionConstraintsSigmas[2][0] * 1e3 if bpmPositionConstraintsSigmas[2][0] != np.inf else -1)
-        self.bpm3PositionConstraintsSigma.SetXYZ(
-                bpmPositionConstraintsSigmas[3][2] * 1e3 if bpmPositionConstraintsSigmas[3][2] != np.inf else -1,
-                bpmPositionConstraintsSigmas[3][1] * 1e3 if bpmPositionConstraintsSigmas[3][1] != np.inf else -1,
-                bpmPositionConstraintsSigmas[3][0] * 1e3 if bpmPositionConstraintsSigmas[3][0] != np.inf else -1)
+        setPositionSigma(self.bpm0PositionConstraintsSigma, bpmPositionConstraintsSigmas[0])
+        setPositionSigma(self.bpm1PositionConstraintsSigma, bpmPositionConstraintsSigmas[1])
+        setPositionSigma(self.bpm2PositionConstraintsSigma, bpmPositionConstraintsSigmas[2])
+        setPositionSigma(self.bpm3PositionConstraintsSigma, bpmPositionConstraintsSigmas[3])
 
         # Quad positions [mm]
-        self.quad1Position.SetXYZ(
-                quadPositions[0][2] * 1e3,
-                quadPositions[0][1] * 1e3,
-                -quadPositions[0][0] * 1e3)
-        self.quad2Position.SetXYZ(
-                quadPositions[1][2] * 1e3,
-                quadPositions[1][1] * 1e3,
-                -quadPositions[1][0] * 1e3)
-        self.quad3Position.SetXYZ(
-                quadPositions[2][2] * 1e3,
-                quadPositions[2][1] * 1e3,
-                -quadPositions[2][0] * 1e3)
+        setPosition(self.quad1Position, quadPositions[0])
+        setPosition(self.quad2Position, quadPositions[1])
+        setPosition(self.quad3Position, quadPositions[2])
 
         # Quad tilts [rad]
-        self.quad1Tilt.Set(quadTilts[0][0], quadTilts[0][1])
-        self.quad2Tilt.Set(quadTilts[1][0], quadTilts[1][1])
-        self.quad3Tilt.Set(quadTilts[2][0], quadTilts[2][1])
+        setAngles(self.quad1Tilt, quadTilts[0])
+        setAngles(self.quad2Tilt, quadTilts[1])
+        setAngles(self.quad3Tilt, quadTilts[2])
 
         # Quad shifts constraints means [mm]
-        self.quad1PositionConstraintsMean.SetXYZ(
-                quadPositionConstraintsMeans[0][2] * 1e3,
-                quadPositionConstraintsMeans[0][1] * 1e3,
-                -quadPositionConstraintsMeans[0][0] * 1e3)
-        self.quad2PositionConstraintsMean.SetXYZ(
-                quadPositionConstraintsMeans[1][2] * 1e3,
-                quadPositionConstraintsMeans[1][1] * 1e3,
-                -quadPositionConstraintsMeans[1][0] * 1e3)
-        self.quad3PositionConstraintsMean.SetXYZ(
-                quadPositionConstraintsMeans[2][2] * 1e3,
-                quadPositionConstraintsMeans[2][1] * 1e3,
-                -quadPositionConstraintsMeans[2][0] * 1e3)
+        setPosition(self.quad1PositionConstraintsMean, quadPositionConstraintsMeans[0])
+        setPosition(self.quad2PositionConstraintsMean, quadPositionConstraintsMeans[1])
+        setPosition(self.quad3PositionConstraintsMean, quadPositionConstraintsMeans[2])
 
         # Quad tilts constraints means [rad]
-        self.quad1TiltConstraintsMean.Set(
-                quadTiltConstraintsMeans[0][0],
-                quadTiltConstraintsMeans[0][1])
-        self.quad2TiltConstraintsMean.Set(
-                quadTiltConstraintsMeans[1][0],
-                quadTiltConstraintsMeans[1][1])
-        self.quad3TiltConstraintsMean.Set(
-                quadTiltConstraintsMeans[2][0],
-                quadTiltConstraintsMeans[2][1])
+        setAngles(self.quad1TiltConstraintsMean, quadTiltConstraintsMeans[0])
+        setAngles(self.quad2TiltConstraintsMean, quadTiltConstraintsMeans[1])
+        setAngles(self.quad3TiltConstraintsMean, quadTiltConstraintsMeans[2])
 
         # Quad shifts constraints uncertainties [mm]
-        self.quad1PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[0][0] * 1e3 if quadPositionConstraintsSigmas[0][0] != np.inf else -1)
-        self.quad2PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[1][2] * 1e3 if quadPositionConstraintsSigmas[1][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[1][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[1][0] * 1e3 if quadPositionConstraintsSigmas[1][0] != np.inf else -1)
-        self.quad3PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[2][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[2][1] * 1e3 if quadPositionConstraintsSigmas[2][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[2][0] * 1e3 if quadPositionConstraintsSigmas[2][0] != np.inf else -1)
+        setPositionSigma(self.quad1PositionConstraintsSigma, quadPositionConstraintsSigmas[0])
+        setPositionSigma(self.quad2PositionConstraintsSigma, quadPositionConstraintsSigmas[1])
+        setPositionSigma(self.quad3PositionConstraintsSigma, quadPositionConstraintsSigmas[2])
 
         # Quad tilts constraints uncertainties [rad]
-        self.quad1TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
-        self.quad2TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[1][0] if quadTiltConstraintsSigmas[1][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[1][1] if quadTiltConstraintsSigmas[1][1] != np.inf else -1)
-        self.quad3TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[2][0] if quadTiltConstraintsSigmas[2][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[2][1] if quadTiltConstraintsSigmas[2][1] != np.inf else -1)
+        setAnglesSigma(self.quad1TiltConstraintsSigma, quadTiltConstraintsSigmas[0])
+        setAnglesSigma(self.quad2TiltConstraintsSigma, quadTiltConstraintsSigmas[1])
+        setAnglesSigma(self.quad3TiltConstraintsSigma, quadTiltConstraintsSigmas[2])
 
         # BPM fit status (true == floating, false == fixed)
         # [bpm0, bpm1, bpm2, bpm3]
@@ -492,10 +474,19 @@ class E320RootBeamlineAlignmentWriter:
             bpmHitCov.Use(2, 2, bpmHitCovData.GetArray())
             self.bpmHitCovs.push_back(bpmHitCov)
 
-        # Alignment covariance
+        # Alignment covariance [mm, rad]
+        # (per direction: 7 shifts [m] -> [mm], then 3 tilts [rad])
+        nParsDirection = 10
+        nShiftsDirection = 7
         dimX, dimY = alignmentCov.shape
+        covScale = np.zeros(shape=(dimX), dtype=float)
+        for i in range(dimX):
+            if (i % nParsDirection < nShiftsDirection):
+                covScale[i] = 1e3 # shift
+            else:
+                covScale[i] = 1.0 # tilt
         for i in range(dimX):
             for j in range(dimY):
-                self.alignmentCov[i][j] = alignmentCov[i, j] * 1e6
+                self.alignmentCov[i][j] = alignmentCov[i, j] * covScale[i] * covScale[j]
 
         self.tree.Fill()
