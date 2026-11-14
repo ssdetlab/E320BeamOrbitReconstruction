@@ -438,24 +438,24 @@ class E320RootBeamlineAlignmentWriter:
                 quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
                 quadPositionConstraintsSigmas[0][0] * 1e3 if quadPositionConstraintsSigmas[0][0] != np.inf else -1)
         self.quad2PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[1][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1)
+                quadPositionConstraintsSigmas[1][2] * 1e3 if quadPositionConstraintsSigmas[1][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[1][1] * 1e3 if quadPositionConstraintsSigmas[1][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[1][0] * 1e3 if quadPositionConstraintsSigmas[1][0] != np.inf else -1)
         self.quad3PositionConstraintsSigma.SetXYZ(
-                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
-                quadPositionConstraintsSigmas[2][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
-                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1)
+                quadPositionConstraintsSigmas[2][2] * 1e3 if quadPositionConstraintsSigmas[2][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[2][1] * 1e3 if quadPositionConstraintsSigmas[2][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[2][0] * 1e3 if quadPositionConstraintsSigmas[2][0] != np.inf else -1)
 
         # Quad tilts constraints uncertainties [rad]
         self.quad1TiltConstraintsSigma.Set(
                 quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
                 quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
         self.quad2TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[1][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[1][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+                quadTiltConstraintsSigmas[1][0] if quadTiltConstraintsSigmas[1][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[1][1] if quadTiltConstraintsSigmas[1][1] != np.inf else -1)
         self.quad3TiltConstraintsSigma.Set(
-                quadTiltConstraintsSigmas[2][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
-                quadTiltConstraintsSigmas[2][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+                quadTiltConstraintsSigmas[2][0] if quadTiltConstraintsSigmas[2][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[2][1] if quadTiltConstraintsSigmas[2][1] != np.inf else -1)
 
         # BPM fit status (true == floating, false == fixed)
         # [bpm0, bpm1, bpm2, bpm3]
