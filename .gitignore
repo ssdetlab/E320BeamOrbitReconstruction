@@ -1,0 +1,5 @@
+.cache
+*pycache*
+out_data
+Legacy
+quad_scan_data_facet
