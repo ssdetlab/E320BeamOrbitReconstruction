@@ -1,16 +1,31 @@
 import ROOT
 
-from ctypes import c_double
+import numpy as np
+import numpy.typing as npt
+from ctypes import c_int, c_double
 
 class E320RootBeamlineAlignmentWriter:
+    """
+    Alignment parameters writer
+
+    The alignment is written as vectors. 
+    The convention is [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3] separate for X and Y.
+    """
     class Config:
+        """
+        Nested configuration struct
+        """
         # Name of the output tree
         treeName = ""
         # Name of the output file
         filePath = ""
 
-    # @brief constructor
     def __init__(self, cfg: Config) -> None:
+        """
+        Constructor
+
+        cfg: configuration
+        """
         self.cfg = cfg
 
         if not self.cfg.filePath:
@@ -24,107 +39,439 @@ class E320RootBeamlineAlignmentWriter:
         # -------------------------------------------------------------
         # Members
 
+        # [x, y, z] convention for the position vectors, 
+        # [pitch, yaw] for quad angles
+
         # BPM positions [mm]
-        self.bpm0CenterPrimary = c_double(0)
-        self.bpm1CenterPrimary = c_double(0)
-        self.bpm2CenterPrimary = c_double(0)
-        self.bpm3CenterPrimary = c_double(0)
+        self.bpm0Position = ROOT.TVector3()
+        self.bpm1Position = ROOT.TVector3()
+        self.bpm2Position = ROOT.TVector3()
+        self.bpm3Position = ROOT.TVector3()
 
-        self.bpm0CenterLong = c_double(0)
-        self.bpm1CenterLong = c_double(0)
-        self.bpm2CenterLong = c_double(0)
-        self.bpm3CenterLong = c_double(0)
+        # BPM constraints means [mm]
+        self.bpm0PositionConstraintsMean = ROOT.TVector3()
+        self.bpm1PositionConstraintsMean = ROOT.TVector3()
+        self.bpm2PositionConstraintsMean = ROOT.TVector3()
+        self.bpm3PositionConstraintsMean = ROOT.TVector3()
 
-        self.bpm0CenterShort = c_double(0)
-        self.bpm1CenterShort = c_double(0)
-        self.bpm2CenterShort = c_double(0)
-        self.bpm3CenterShort = c_double(0)
+        # BPM constraints uncertainties [mm]
+        self.bpm0PositionConstraintsSigma = ROOT.TVector3()
+        self.bpm1PositionConstraintsSigma = ROOT.TVector3()
+        self.bpm2PositionConstraintsSigma = ROOT.TVector3()
+        self.bpm3PositionConstraintsSigma = ROOT.TVector3()
 
         # Quad positions [mm]
-        self.quad1CenterPrimary = c_double(0)
-        self.quad2CenterPrimary = c_double(0)
-        self.quad3CenterPrimary = c_double(0)
+        self.quad1Position = ROOT.TVector3()
+        self.quad2Position = ROOT.TVector3()
+        self.quad3Position = ROOT.TVector3()
 
-        self.quad1CenterLong = c_double(0)
-        self.quad2CenterLong = c_double(0)
-        self.quad3CenterLong = c_double(0)
+        # Quad tilts [rad]
+        self.quad1Tilt = ROOT.TVector2()
+        self.quad2Tilt = ROOT.TVector2()
+        self.quad3Tilt = ROOT.TVector2()
 
-        self.quad1CenterShort = c_double(0)
-        self.quad2CenterShort = c_double(0)
-        self.quad3CenterShort = c_double(0)
+        # Quad shifts constraints means [mm]
+        self.quad1PositionConstraintsMean = ROOT.TVector3()
+        self.quad2PositionConstraintsMean = ROOT.TVector3()
+        self.quad3PositionConstraintsMean = ROOT.TVector3()
+
+        # Quad shifts constraints uncertainties [mm]
+        self.quad1PositionConstraintsSigma = ROOT.TVector3()
+        self.quad2PositionConstraintsSigma = ROOT.TVector3()
+        self.quad3PositionConstraintsSigma = ROOT.TVector3()
+
+        # Quad tilts constraints means [rad]
+        self.quad1TiltConstraintsMean = ROOT.TVector2()
+        self.quad2TiltConstraintsMean = ROOT.TVector2()
+        self.quad3TiltConstraintsMean = ROOT.TVector2()
+
+        # Quad tilts constraints uncertainties [rad]
+        self.quad1TiltConstraintsSigma = ROOT.TVector2()
+        self.quad2TiltConstraintsSigma = ROOT.TVector2()
+        self.quad3TiltConstraintsSigma = ROOT.TVector2()
+
+        # BPM fit status (true == floating, false == fixed)
+        # [bpm0, bpm1, bpm2, bpm3]
+        self.bpmFree = ROOT.std.vector("bool")()
+
+        # Quad shifts fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        self.quadShiftsFree = ROOT.std.vector("bool")()
+
+        # Quad tilits fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        self.quadTiltsFree = ROOT.std.vector("bool")()
+
+        # Alignment fit chi2
+        self.alignmentLongChi2 = c_double(0)
+        self.alignmentShortChi2 = c_double(0)
+
+        # Alignment fit ndf
+        self.alignmentLongNdf = c_int(0)
+        self.alignmentShortNdf = c_int(0)
+
+        # Alignment fit covariance
+        self.alignmentCov = ROOT.TMatrixD(20, 20)
+
+        # BPM uncertainties used in the alignment fit
+        # in local BPM coordinates
+        # [bpm0, bpm1, bpm2, bpm3]
+        self.bpmHitCovs = ROOT.std.vector("TMatrixD")()
 
         # -------------------------------------------------------------
         # Tree branches
 
+        bufSize = 32000
+        splitLvl = 0
+
         # BPM positions [mm]
-        self.tree.Branch("bpm0CenterPrimary", self.bpm0CenterPrimary, "bpm0CenterPrimary/D")
-        self.tree.Branch("bpm1CenterPrimary", self.bpm1CenterPrimary, "bpm1CenterPrimary/D")
-        self.tree.Branch("bpm2CenterPrimary", self.bpm2CenterPrimary, "bpm2CenterPrimary/D")
-        self.tree.Branch("bpm3CenterPrimary", self.bpm3CenterPrimary, "bpm3CenterPrimary/D")
+        self.tree.Branch("bpm0Position", self.bpm0Position, bufSize, splitLvl)
+        self.tree.Branch("bpm1Position", self.bpm1Position, bufSize, splitLvl)
+        self.tree.Branch("bpm2Position", self.bpm2Position, bufSize, splitLvl)
+        self.tree.Branch("bpm3Position", self.bpm3Position, bufSize, splitLvl)
 
-        self.tree.Branch("bpm0CenterLong", self.bpm0CenterLong, "bpm0CenterLong/D")
-        self.tree.Branch("bpm1CenterLong", self.bpm1CenterLong, "bpm1CenterLong/D")
-        self.tree.Branch("bpm2CenterLong", self.bpm2CenterLong, "bpm2CenterLong/D")
-        self.tree.Branch("bpm3CenterLong", self.bpm3CenterLong, "bpm3CenterLong/D")
+        # BPM constraints means [mm]
+        self.tree.Branch(
+                "bpm0PositionConstraintsMean", 
+                self.bpm0PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm1PositionConstraintsMean", 
+                self.bpm1PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm2PositionConstraintsMean", 
+                self.bpm2PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm3PositionConstraintsMean", 
+                self.bpm3PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
 
-        self.tree.Branch("bpm0CenterShort", self.bpm0CenterShort, "bpm0CenterShort/D")
-        self.tree.Branch("bpm1CenterShort", self.bpm1CenterShort, "bpm1CenterShort/D")
-        self.tree.Branch("bpm2CenterShort", self.bpm2CenterShort, "bpm2CenterShort/D")
-        self.tree.Branch("bpm3CenterShort", self.bpm3CenterShort, "bpm3CenterShort/D")
+        # BPM constraints uncertainties [mm]
+        self.tree.Branch(
+                "bpm0PositionConstraintsSigma", 
+                self.bpm0PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm1PositionConstraintsSigma", 
+                self.bpm1PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm2PositionConstraintsSigma", 
+                self.bpm2PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "bpm3PositionConstraintsSigma", 
+                self.bpm3PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
 
         # Quad positions [mm]
-        self.tree.Branch("quad1CenterPrimary", self.quad1CenterPrimary, "quad1CenterPrimary/D")
-        self.tree.Branch("quad2CenterPrimary", self.quad2CenterPrimary, "quad2CenterPrimary/D")
-        self.tree.Branch("quad3CenterPrimary", self.quad3CenterPrimary, "quad3CenterPrimary/D")
+        self.tree.Branch("quad1Position", self.quad1Position, bufSize, splitLvl)
+        self.tree.Branch("quad2Position", self.quad2Position, bufSize, splitLvl)
+        self.tree.Branch("quad3Position", self.quad3Position, bufSize, splitLvl)
 
-        self.tree.Branch("quad1CenterLong", self.quad1CenterLong, "quad1CenterLong/D")
-        self.tree.Branch("quad2CenterLong", self.quad2CenterLong, "quad2CenterLong/D")
-        self.tree.Branch("quad3CenterLong", self.quad3CenterLong, "quad3CenterLong/D")
+        # Quad tilts [rad]
+        self.tree.Branch("quad1Tilt", self.quad1Tilt, bufSize, splitLvl)
+        self.tree.Branch("quad2Tilt", self.quad2Tilt, bufSize, splitLvl)
+        self.tree.Branch("quad3Tilt", self.quad3Tilt, bufSize, splitLvl)
 
-        self.tree.Branch("quad1CenterShort", self.quad1CenterShort, "quad1CenterShort/D")
-        self.tree.Branch("quad2CenterShort", self.quad2CenterShort, "quad2CenterShort/D")
-        self.tree.Branch("quad3CenterShort", self.quad3CenterShort, "quad3CenterShort/D")
+        # Quad shifts constraints means [mm]
+        self.tree.Branch(
+                "quad1PositionConstraintsMean", 
+                self.quad1PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad2PositionConstraintsMean", 
+                self.quad2PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad3PositionConstraintsMean", 
+                self.quad3PositionConstraintsMean, 
+                bufSize, 
+                splitLvl)
 
-    def __del__(self):
+        # Quad shifts constraints uncertainties [mm]
+        self.tree.Branch(
+                "quad1PositionConstraintsSigma", 
+                self.quad1PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad2PositionConstraintsSigma", 
+                self.quad2PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad3PositionConstraintsSigma", 
+                self.quad3PositionConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+
+        # Quad tilts constraints means [rad]
+        self.tree.Branch(
+                "quad1TiltConstraintsMean", 
+                self.quad1TiltConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad2TiltConstraintsMean", 
+                self.quad2TiltConstraintsMean, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad3TiltConstraintsMean", 
+                self.quad3TiltConstraintsMean, 
+                bufSize, 
+                splitLvl)
+
+        # Quad tilts constraints uncertainties [rad]
+        self.tree.Branch(
+                "quad1TiltConstraintsSigma", 
+                self.quad1TiltConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad2TiltConstraintsSigma", 
+                self.quad2TiltConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+        self.tree.Branch(
+                "quad3TiltConstraintsSigma", 
+                self.quad3TiltConstraintsSigma, 
+                bufSize, 
+                splitLvl)
+
+        # BPM fit status (true == floating, false == fixed)
+        # [bpm0, bpm1, bpm2, bpm3]
+        self.tree.Branch("bpmFree", self.bpmFree, bufSize, splitLvl)
+
+        # Quad shifts fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        self.tree.Branch("quadShiftsFree", self.quadShiftsFree, bufSize, splitLvl)
+
+        # Quad tilits fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        self.tree.Branch("quadTiltsFree", self.quadTiltsFree, bufSize, splitLvl)
+
+        # Alignment fit chi2
+        self.tree.Branch("alignmentLongChi2", self.alignmentLongChi2, "alignmentLongChi2/D")
+        self.tree.Branch("alignmentShortChi2", self.alignmentShortChi2, "alignmentShortChi2/D")
+
+        # Alignment fit ndf
+        self.tree.Branch("alignmentLongNdf", self.alignmentLongNdf, "alignmentLongNdf/I")
+        self.tree.Branch("alignmentShortNdf", self.alignmentShortNdf, "alignmentShortNdf/I")
+
+        # Alignment fit covariance
+        self.tree.Branch("alignmentCov", self.alignmentCov, bufSize, splitLvl)
+
+        # BPM uncertainties used in the alignment fit
+        # in local BPM coordinates
+        # [bpm0, bpm1, bpm2, bpm3]
+        self.tree.Branch("bpmHitCovs", self.bpmHitCovs, bufSize, splitLvl)
+
+    def __del__(self) -> None:
         self.file.Write()
         self.file.Close()
 
     def write(
             self, 
-            bpmCenterPrimary, 
-            bpmCenterLong, 
-            bpmCenterShort, 
-            quadCenterPrimary, 
-            quadCenterLong, 
-            quadCenterShort):
-        
+            bpmPositions: list[npt.NDArray[np.float64]], 
+            bpmPositionConstraintsMeans: list[npt.NDArray[np.float64]], 
+            bpmPositionConstraintsSigmas: list[npt.NDArray[np.float64]], 
+            quadPositions: list[npt.NDArray[np.float64]], 
+            quadTilts: list[npt.NDArray[np.float64]], 
+            quadPositionConstraintsMeans: list[npt.NDArray[np.float64]], 
+            quadTiltConstraintsMeans: list[npt.NDArray[np.float64]], 
+            quadPositionConstraintsSigmas: list[npt.NDArray[np.float64]], 
+            quadTiltConstraintsSigmas: list[npt.NDArray[np.float64]], 
+            bpmFree: npt.NDArray[np.bool], 
+            quadShiftsFree: npt.NDArray[np.bool], 
+            quadTiltsFree: npt.NDArray[np.bool], 
+            alignmentLongChi2: float,
+            alignmentShortChi2: float,
+            alignmentLongNdf: int,
+            alignmentShortNdf: int,
+            alignmentCov: npt.NDArray[np.float64], 
+            bpmCovs: list[npt.NDArray[np.bool]]) -> None:
+        # Clear the vectors
+        self.bpmHitCovs.clear()
+        self.bpmFree.clear()
+        self.quadShiftsFree.clear()
+        self.quadTiltsFree.clear()
+
         # BPM positions [mm]
-        self.bpm0CenterPrimary.value = bpmCenterPrimary[0] * 1e3
-        self.bpm1CenterPrimary.value = bpmCenterPrimary[1] * 1e3
-        self.bpm2CenterPrimary.value = bpmCenterPrimary[2] * 1e3
-        self.bpm3CenterPrimary.value = bpmCenterPrimary[3] * 1e3
+        self.bpm0Position.SetXYZ(
+                bpmPositions[0][2] * 1e3,
+                bpmPositions[0][1] * 1e3,
+                -bpmPositions[0][0] * 1e3)
+        self.bpm1Position.SetXYZ(
+                bpmPositions[1][2] * 1e3,
+                bpmPositions[1][1] * 1e3,
+                -bpmPositions[1][0] * 1e3)
+        self.bpm2Position.SetXYZ(
+                bpmPositions[2][2] * 1e3,
+                bpmPositions[2][1] * 1e3,
+                -bpmPositions[2][0] * 1e3)
+        self.bpm3Position.SetXYZ(
+                bpmPositions[3][2] * 1e3,
+                bpmPositions[3][1] * 1e3,
+                -bpmPositions[3][0] * 1e3)
 
-        self.bpm0CenterLong.value = bpmCenterLong[0] * 1e3
-        self.bpm1CenterLong.value = bpmCenterLong[1] * 1e3
-        self.bpm2CenterLong.value = bpmCenterLong[2] * 1e3
-        self.bpm3CenterLong.value = bpmCenterLong[3] * 1e3
+        # BPM constraints means [mm]
+        self.bpm0PositionConstraintsMean.SetXYZ(
+                bpmPositionConstraintsMeans[0][2] * 1e3,
+                bpmPositionConstraintsMeans[0][1] * 1e3,
+                -bpmPositionConstraintsMeans[0][0] * 1e3)
+        self.bpm1PositionConstraintsMean.SetXYZ(
+                bpmPositionConstraintsMeans[1][2] * 1e3,
+                bpmPositionConstraintsMeans[1][1] * 1e3,
+                -bpmPositionConstraintsMeans[1][0] * 1e3)
+        self.bpm2PositionConstraintsMean.SetXYZ(
+                bpmPositionConstraintsMeans[2][2] * 1e3,
+                bpmPositionConstraintsMeans[2][1] * 1e3,
+                -bpmPositionConstraintsMeans[2][0] * 1e3)
+        self.bpm3PositionConstraintsMean.SetXYZ(
+                bpmPositionConstraintsMeans[3][2] * 1e3,
+                bpmPositionConstraintsMeans[3][1] * 1e3,
+                -bpmPositionConstraintsMeans[3][0] * 1e3)
 
-        self.bpm0CenterShort.value = bpmCenterShort[0] * 1e3
-        self.bpm1CenterShort.value = bpmCenterShort[1] * 1e3
-        self.bpm2CenterShort.value = bpmCenterShort[2] * 1e3
-        self.bpm3CenterShort.value = bpmCenterShort[3] * 1e3
+        # BPM constraints uncertainties [mm]
+        self.bpm0PositionConstraintsSigma.SetXYZ(
+                bpmPositionConstraintsSigmas[0][2] * 1e3 if bpmPositionConstraintsSigmas[0][2] != np.inf else -1,
+                bpmPositionConstraintsSigmas[0][1] * 1e3 if bpmPositionConstraintsSigmas[0][1] != np.inf else -1,
+                bpmPositionConstraintsSigmas[0][0] * 1e3 if bpmPositionConstraintsSigmas[0][0] != np.inf else -1)
+        self.bpm1PositionConstraintsSigma.SetXYZ(
+                bpmPositionConstraintsSigmas[1][2] * 1e3 if bpmPositionConstraintsSigmas[1][2] != np.inf else -1,
+                bpmPositionConstraintsSigmas[1][1] * 1e3 if bpmPositionConstraintsSigmas[1][1] != np.inf else -1,
+                bpmPositionConstraintsSigmas[1][0] * 1e3 if bpmPositionConstraintsSigmas[1][0] != np.inf else -1)
+        self.bpm2PositionConstraintsSigma.SetXYZ(
+                bpmPositionConstraintsSigmas[2][2] * 1e3 if bpmPositionConstraintsSigmas[2][2] != np.inf else -1,
+                bpmPositionConstraintsSigmas[2][1] * 1e3 if bpmPositionConstraintsSigmas[2][1] != np.inf else -1,
+                bpmPositionConstraintsSigmas[2][0] * 1e3 if bpmPositionConstraintsSigmas[2][0] != np.inf else -1)
+        self.bpm3PositionConstraintsSigma.SetXYZ(
+                bpmPositionConstraintsSigmas[3][2] * 1e3 if bpmPositionConstraintsSigmas[3][2] != np.inf else -1,
+                bpmPositionConstraintsSigmas[3][1] * 1e3 if bpmPositionConstraintsSigmas[3][1] != np.inf else -1,
+                bpmPositionConstraintsSigmas[3][0] * 1e3 if bpmPositionConstraintsSigmas[3][0] != np.inf else -1)
 
         # Quad positions [mm]
-        self.quad1CenterPrimary.value = quadCenterPrimary[0] * 1e3
-        self.quad2CenterPrimary.value = quadCenterPrimary[1] * 1e3
-        self.quad3CenterPrimary.value = quadCenterPrimary[2] * 1e3
+        self.quad1Position.SetXYZ(
+                quadPositions[0][2] * 1e3,
+                quadPositions[0][1] * 1e3,
+                -quadPositions[0][0] * 1e3)
+        self.quad2Position.SetXYZ(
+                quadPositions[1][2] * 1e3,
+                quadPositions[1][1] * 1e3,
+                -quadPositions[1][0] * 1e3)
+        self.quad3Position.SetXYZ(
+                quadPositions[2][2] * 1e3,
+                quadPositions[2][1] * 1e3,
+                -quadPositions[2][0] * 1e3)
 
-        self.quad1CenterLong.value = quadCenterLong[0] * 1e3
-        self.quad2CenterLong.value = quadCenterLong[1] * 1e3
-        self.quad3CenterLong.value = quadCenterLong[2] * 1e3
+        # Quad tilts [rad]
+        self.quad1Tilt.Set(quadTilts[0][0], quadTilts[0][1])
+        self.quad2Tilt.Set(quadTilts[1][0], quadTilts[0][1])
+        self.quad3Tilt.Set(quadTilts[2][0], quadTilts[0][1])
 
-        self.quad1CenterShort.value = quadCenterShort[0] * 1e3
-        self.quad2CenterShort.value = quadCenterShort[1] * 1e3
-        self.quad3CenterShort.value = quadCenterShort[2] * 1e3
+        # Quad shifts constraints means [mm]
+        self.quad1PositionConstraintsMean.SetXYZ(
+                quadPositionConstraintsMeans[0][2] * 1e3,
+                quadPositionConstraintsMeans[0][1] * 1e3,
+                quadPositionConstraintsMeans[0][0] * 1e3)
+        self.quad2PositionConstraintsMean.SetXYZ(
+                quadPositionConstraintsMeans[1][2] * 1e3,
+                quadPositionConstraintsMeans[1][1] * 1e3,
+                quadPositionConstraintsMeans[1][0] * 1e3)
+        self.quad3PositionConstraintsMean.SetXYZ(
+                quadPositionConstraintsMeans[2][2] * 1e3,
+                quadPositionConstraintsMeans[2][1] * 1e3,
+                quadPositionConstraintsMeans[2][0] * 1e3)
+
+        # Quad tilts constraints means [rad]
+        self.quad1TiltConstraintsMean.Set(
+                quadTiltConstraintsMeans[0][0],
+                quadTiltConstraintsMeans[0][1])
+        self.quad2TiltConstraintsMean.Set(
+                quadTiltConstraintsMeans[0][0],
+                quadTiltConstraintsMeans[0][1])
+        self.quad3TiltConstraintsMean.Set(
+                quadTiltConstraintsMeans[0][0],
+                quadTiltConstraintsMeans[0][1])
+
+        # Quad shifts constraints uncertainties [mm]
+        self.quad1PositionConstraintsSigma.SetXYZ(
+                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][0] * 1e3 if quadPositionConstraintsSigmas[0][0] != np.inf else -1)
+        self.quad2PositionConstraintsSigma.SetXYZ(
+                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1)
+        self.quad3PositionConstraintsSigma.SetXYZ(
+                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][1] * 1e3 if quadPositionConstraintsSigmas[0][1] != np.inf else -1,
+                quadPositionConstraintsSigmas[0][2] * 1e3 if quadPositionConstraintsSigmas[0][2] != np.inf else -1)
+
+        # Quad tilts constraints uncertainties [rad]
+        self.quad1TiltConstraintsSigma.Set(
+                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+        self.quad2TiltConstraintsSigma.Set(
+                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+        self.quad3TiltConstraintsSigma.Set(
+                quadTiltConstraintsSigmas[0][0] if quadTiltConstraintsSigmas[0][0] != np.inf else -1,
+                quadTiltConstraintsSigmas[0][1] if quadTiltConstraintsSigmas[0][1] != np.inf else -1)
+
+        # BPM fit status (true == floating, false == fixed)
+        # [bpm0, bpm1, bpm2, bpm3]
+        for i in range(4):
+            self.bpmFree.push_back(bpmFree[i])
+
+        # Quad shifts fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        for i in range(3):
+            self.quadShiftsFree.push_back(quadShiftsFree[i])
+
+        # Quad tilits fit status (true == floating, false == fixed)
+        # [quad1, quad2, quad3]
+        for i in range(3):
+            self.quadTiltsFree.push_back(quadTiltsFree[i])
+
+        # Alignment fit chi2
+        self.alignmentLongChi2.value = alignmentLongChi2
+        self.alignmentShortChi2.value = alignmentShortChi2
+
+        # Alignment fit ndf
+        self.alignmentLongNdf.value = alignmentLongNdf
+        self.alignmentShortNdf.value = alignmentShortNdf
+
+        # BPM uncertainties used in the alignment fit
+        # in local BPM coordinates
+        # [bpm0, bpm1, bpm2, bpm3]
+        for k in range(4):
+            bpmHitCovData = ROOT.TArrayD(4)
+            bpmHitCov = ROOT.TMatrixD(2, 2)
+            for i in range(2):
+                for j in range(2):
+                    bpmHitCovData[i * 2 + j] = bpmCovs[k][i, j] * 1e6
+            bpmHitCov.Use(2, 2, bpmHitCovData.GetArray())
+            self.bpmHitCovs.push_back(bpmHitCov)
+
+        # Alignment covariance
+        dimX, dimY = alignmentCov.shape
+        for i in range(dimX):
+            for j in range(dimY):
+                self.alignmentCov[i][j] = alignmentCov[i, j]
 
         self.tree.Fill()
