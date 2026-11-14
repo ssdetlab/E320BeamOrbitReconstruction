@@ -66,8 +66,8 @@ class BeamOrbit:
         self.referenceCov = np.array([
             [orbitFitX.referenceCov[0][0], orbitFitX.referenceCov[0][1], 0.0, 0.0], 
             [orbitFitX.referenceCov[1][0], orbitFitX.referenceCov[1][1], 0.0, 0.0],
-            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1], 0.0, 0.0],
-            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1], 0.0, 0.0]], 
+            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1]],
+            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1]]], 
                                              dtype=np.float64)
 
         # Get energy estimate
