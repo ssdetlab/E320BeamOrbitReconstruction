@@ -70,11 +70,8 @@ class RootOrbitFitWriter:
         # Estimated non-centered momentum pulls at the reference
         self.referenceAnglePullsEst = ROOT.TVector2()
 
-        # Predicted vertex covariance at the reference
-        self.referencePositionCov = ROOT.TMatrixD(2, 2)
-
-        # Predicted angle covariance at the reference
-        self.referenceAngleCov = ROOT.TMatrixD(2, 2)
+        # Predicted (x, x', y, y') covariance at the reference
+        self.referenceCov = ROOT.TMatrixD(4, 4)
 
         # Event ID
         self.eventId = c_uint64(0)
@@ -117,11 +114,8 @@ class RootOrbitFitWriter:
         # Predicted momentum at the reference
         self.tree.Branch("referenceMomentumEst", self.referenceMomentumEst, bufSize, splitLvl)
 
-        # Predicted vertex covariance at the reference
-        self.tree.Branch("referencePositionCov", self.referencePositionCov, bufSize, splitLvl)
-
-        # Predicted angle covariance at the reference
-        self.tree.Branch("referenceAngleCov", self.referenceAngleCov, bufSize, splitLvl)
+        # Predicted (x, x', y, y') covariance at the reference
+        self.tree.Branch("referenceCov", self.referenceCov, bufSize, splitLvl)
 
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
@@ -186,9 +180,21 @@ class RootOrbitFitWriter:
                 referencePositionEst[1],
                 -referencePositionEst[0])
 
+        # Predicted (x, x', y, y') covariance at the reference [mm, rad]
+        covScale = np.zeros(shape=(4), dtype=float)
+        covScale[0] = 1e3 # x
+        covScale[1] = 1.0 # x'
+        covScale[2] = 1e3 # y
+        covScale[3] = 1.0 # y'
+        referenceCov = np.zeros(shape=(4, 4), dtype=float)
+        for i in range(4):
+            for j in range(4):
+                referenceCov[i, j] = fittedOrbit.referenceCov[i, j] * covScale[i] * covScale[j]
+
         # Reference position pull
-        referencePositionCov = fittedOrbit.referencePositionCov * 1e6
-        referencePositionErrs = np.sqrt(np.linalg.diagonal(referencePositionCov))
+        referencePositionErrs = np.zeros(shape=(2), dtype=float)
+        referencePositionErrs[0] = np.sqrt(referenceCov[0, 0]) # x
+        referencePositionErrs[1] = np.sqrt(referenceCov[2, 2]) # y
         referencePositionPullsEst = referencePositionEst[:-1] / referencePositionErrs
         self.referencePositionPullsEst.SetXYZ(
                 0,
@@ -205,23 +211,19 @@ class RootOrbitFitWriter:
                 energyEst)
 
         # Reference angle pull
-        referenceAngleCov = fittedOrbit.referenceAngleCov
-        referenceAngleErrs = np.sqrt(np.linalg.diagonal(referenceAngleCov))
+        referenceAngleErrs = np.zeros(shape=(2), dtype=float)
+        referenceAngleErrs[0] = np.sqrt(referenceCov[1, 1]) # x'
+        referenceAngleErrs[1] = np.sqrt(referenceCov[3, 3]) # y'
         referenceAngleResiduals = np.array([np.pi / 2 - self.referenceMomentumEst.Theta(), self.referenceMomentumEst.Phi()])
         referenceAnglePullsEst = referenceAngleResiduals / referenceAngleErrs
         self.referenceAnglePullsEst.Set(
                 referenceAnglePullsEst[0],
                 referenceAnglePullsEst[1])
 
-        # Vertex covariance at the reference
-        for i in range(2):
-            for j in range(2):
-                self.referencePositionCov[i][j] = referencePositionCov[i, j]
-
-        # Angle covariance at the reference
-        for i in range(2):
-            for j in range(2):
-                self.referenceAngleCov[i][j] = referenceAngleCov[i, j]
+        # (x, x', y, y') covariance at the reference [mm, rad]
+        for i in range(4):
+            for j in range(4):
+                self.referenceCov[i][j] = referenceCov[i, j]
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
