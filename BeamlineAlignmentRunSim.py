@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import numpy.typing as npt
 from pathlib import Path
 
 project_dir = Path(__file__).resolve().parent
@@ -18,6 +19,21 @@ from Io.E320RootBeamlineAlignmentWriter import E320RootBeamlineAlignmentWriter
 
 ROOT.gSystem.Load("/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline_build/lib/libSimEventDict.so")
 sys.path.append("../")
+
+def sampleSurvey(truth: npt.NDArray[np.float64], sigma: float) -> npt.NDArray[np.float64]:
+    """
+    Emulate a survey of the beamline elements by sampling 
+    around the true values with the survey precision
+
+    truth: true values of the parameters
+    sigma: survey precision
+
+    return: surveyed values
+    """
+    survey = np.zeros(shape=(len(truth)), dtype=np.float64)
+    for i in range(len(truth)):
+        survey[i] = truth[i] + sigma * np.random.normal()
+    return survey
 
 # ------------------------------------------------------
 pathToDataDir = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_dataInRootFormat/sim/test/alignment_shifts_quad_rots/alignment/clusters"
@@ -52,8 +68,38 @@ eventIdMin, eventIdMax = dataReader.availableEvents()
 eventIdMax = eventIdMax + 1
 
 # ------------------------------------------------------
-quadSigmaConstraintShift = 0.1e-3
-quadSigmaConstraintTilt = 1e-3
+# Survey precision of the emulated survey (placeholders)
+surveySigmaShift = 0.1e-3 # [m]
+surveySigmaTilt = 1e-3 # [rad]
+
+quadSigmaConstraintShift = surveySigmaShift
+quadSigmaConstraintTilt = surveySigmaTilt
+
+# Emulated survey of the quads
+quadShiftsSurveyLong = sampleSurvey(
+    np.array([
+        SimConstraints.quad1CenterLong,
+        SimConstraints.quad2CenterLong,
+        SimConstraints.quad3CenterLong], dtype=np.float64), 
+    surveySigmaShift)
+quadShiftsSurveyShort = sampleSurvey(
+    np.array([
+        SimConstraints.quad1CenterShort,
+        SimConstraints.quad2CenterShort,
+        SimConstraints.quad3CenterShort], dtype=np.float64), 
+    surveySigmaShift)
+quadTiltsSurveyLong = sampleSurvey(
+    np.array([
+        SimConstraints.quad1Yaw,
+        SimConstraints.quad2Yaw,
+        SimConstraints.quad3Yaw], dtype=np.float64), 
+    surveySigmaTilt)
+quadTiltsSurveyShort = sampleSurvey(
+    np.array([
+        SimConstraints.quad1Pitch,
+        SimConstraints.quad2Pitch,
+        SimConstraints.quad3Pitch], dtype=np.float64), 
+    surveySigmaTilt)
 
 beamEnergy = 10 * 1e9 * GeneralConstraints.e
 
@@ -66,51 +112,34 @@ quadShiftsShort = np.array([
     0,
     0], dtype=np.float64)
 
-quadTiltsLong = np.array([
-    0,
-    0,
-    0], dtype=np.float64)
-quadTiltsShort = np.array([
-    0,
-    0,
-    0], dtype=np.float64)
+# Quad tilts, fixed in the alignment fit at the survey values [rad]
+quadTiltsLong = quadTiltsSurveyLong
+quadTiltsShort = quadTiltsSurveyShort
 
 quadLengths = np.array([
     2 * SimConstraints.quad1HalfPrimary,
     2 * SimConstraints.quad2HalfPrimary,
     2 * SimConstraints.quad3HalfPrimary], dtype=np.float64)
 
-quadShiftConstraintsMeanLong = np.array([
-    SimConstraints.quad1CenterLong + quadSigmaConstraintShift * np.random.normal(),
-    SimConstraints.quad2CenterLong + quadSigmaConstraintShift * np.random.normal(),
-    SimConstraints.quad3CenterLong + quadSigmaConstraintShift * np.random.normal()], dtype=np.float64)
+quadShiftConstraintsMeanLong = quadShiftsSurveyLong
 quadShiftConstraintsSigmaLong = np.array([
     quadSigmaConstraintShift,
     quadSigmaConstraintShift,
     quadSigmaConstraintShift], dtype=np.float64)
 
-quadShiftConstraintsMeanShort = np.array([
-    SimConstraints.quad1CenterShort + quadSigmaConstraintShift * np.random.normal(),
-    SimConstraints.quad2CenterShort + quadSigmaConstraintShift * np.random.normal(),
-    SimConstraints.quad3CenterShort + quadSigmaConstraintShift * np.random.normal()], dtype=np.float64)
+quadShiftConstraintsMeanShort = quadShiftsSurveyShort
 quadShiftConstraintsSigmaShort = np.array([
     quadSigmaConstraintShift,
     quadSigmaConstraintShift,
     quadSigmaConstraintShift], dtype=np.float64)
 
-quadTiltConstraintsMeanLong = np.array([
-    SimConstraints.quad1Yaw + quadSigmaConstraintTilt * np.random.normal(),
-    SimConstraints.quad2Yaw + quadSigmaConstraintTilt * np.random.normal(),
-    SimConstraints.quad3Yaw + quadSigmaConstraintTilt * np.random.normal()], dtype=np.float64)
+quadTiltConstraintsMeanLong = quadTiltsSurveyLong
 quadTiltConstraintsSigmaLong = np.array([
     quadSigmaConstraintTilt,
     quadSigmaConstraintTilt,
     quadSigmaConstraintTilt], dtype=np.float64)
 
-quadTiltConstraintsMeanShort = np.array([
-    SimConstraints.quad1Pitch + quadSigmaConstraintTilt * np.random.normal(),
-    SimConstraints.quad2Pitch + quadSigmaConstraintTilt * np.random.normal(),
-    SimConstraints.quad3Pitch + quadSigmaConstraintTilt * np.random.normal()], dtype=np.float64)
+quadTiltConstraintsMeanShort = quadTiltsSurveyShort
 quadTiltConstraintsSigmaShort = np.array([
     quadSigmaConstraintTilt,
     quadSigmaConstraintTilt,
@@ -237,31 +266,84 @@ alignmentWriterCfg.treeName = "alignment-parameters"
 alignmentWriterCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/alignment-parameters.root"
 
 alignmentWriter = E320RootBeamlineAlignmentWriter(alignmentWriterCfg)
+
+# Positions of the beamline elements [x, y, z] [m]
+bpmPrimary = np.array([
+    SimConstraints.bpm0CenterPrimary,
+    SimConstraints.bpm1CenterPrimary,
+    SimConstraints.bpm2CenterPrimary,
+    SimConstraints.bpm3CenterPrimary], dtype=np.float64)
+quadPrimary = np.array([
+    SimConstraints.quad1CenterPrimary,
+    SimConstraints.quad2CenterPrimary,
+    SimConstraints.quad3CenterPrimary], dtype=np.float64)
+
+bpmPositions = []
+bpmPositionConstraintsMeans = []
+bpmPositionConstraintsSigmas = []
+for i in range(4):
+    bpmPositions.append(np.array([alignmentParsX[i], alignmentParsY[i], bpmPrimary[i]]))
+    bpmPositionConstraintsMeans.append(np.array([
+        beamlineX.bpmConstraintMean[i], 
+        beamlineY.bpmConstraintMean[i], 
+        bpmPrimary[i]]))
+    bpmPositionConstraintsSigmas.append(np.array([
+        beamlineX.bpmConstraintSigma[i], 
+        beamlineY.bpmConstraintSigma[i], 
+        np.inf]))
+
+quadPositions = []
+quadTilts = []
+quadPositionConstraintsMeans = []
+quadTiltConstraintsMeans = []
+quadPositionConstraintsSigmas = []
+quadTiltConstraintsSigmas = []
+for i in range(3):
+    quadPositions.append(np.array([alignmentParsX[4 + i], alignmentParsY[4 + i], quadPrimary[i]]))
+    quadTilts.append(np.array([alignmentParsX[7 + i], alignmentParsY[7 + i]]))
+    quadPositionConstraintsMeans.append(np.array([
+        beamlineX.quadShiftsConstraintMean[i], 
+        beamlineY.quadShiftsConstraintMean[i], 
+        quadPrimary[i]]))
+    quadTiltConstraintsMeans.append(np.array([
+        beamlineX.quadTiltsConstraintMean[i], 
+        beamlineY.quadTiltsConstraintMean[i]]))
+    quadPositionConstraintsSigmas.append(np.array([
+        beamlineX.quadShiftsConstraintSigma[i], 
+        beamlineY.quadShiftsConstraintSigma[i], 
+        np.inf]))
+    quadTiltConstraintsSigmas.append(np.array([
+        beamlineX.quadTiltsConstraintSigma[i], 
+        beamlineY.quadTiltsConstraintSigma[i]]))
+
+# Alignment fit covariance [Short, Long] [m, rad]
+alignmentCov = np.zeros(shape=(20, 20), dtype=np.float64)
+alignmentCov[0:10, 0:10] = alignmentCovX
+alignmentCov[10:20, 10:20] = alignmentCovY
+
+# BPM uncertainties used in the alignment fit (mean over the shots) [m^2]
+bpmCovs = []
+for i in range(4):
+    bpmCovs.append(np.array([
+        [np.mean(bpmErrsX[:,i]**2), 0.0], 
+        [0.0, np.mean(bpmErrsY[:,i]**2)]]))
+
 alignmentWriter.write(
-        np.array([
-            SimConstraints.bpm0CenterPrimary,
-            SimConstraints.bpm1CenterPrimary,
-            SimConstraints.bpm2CenterPrimary,
-            SimConstraints.bpm3CenterPrimary]),
-        np.array([
-            alignmentParsY[0],
-            alignmentParsY[1],
-            alignmentParsY[2],
-            alignmentParsY[3]]),
-        np.array([
-            alignmentParsX[0],
-            alignmentParsX[1],
-            alignmentParsX[2],
-            alignmentParsX[3]]),
-        np.array([
-            SimConstraints.quad1CenterPrimary,
-            SimConstraints.quad2CenterPrimary,
-            SimConstraints.quad3CenterPrimary]),
-        np.array([
-            alignmentParsY[4],
-            alignmentParsY[5],
-            alignmentParsY[6]]),
-        np.array([
-            alignmentParsX[4],
-            alignmentParsX[5],
-            alignmentParsX[6]]))
+        bpmPositions, 
+        bpmPositionConstraintsMeans, 
+        bpmPositionConstraintsSigmas, 
+        quadPositions, 
+        quadTilts, 
+        quadPositionConstraintsMeans, 
+        quadTiltConstraintsMeans, 
+        quadPositionConstraintsSigmas, 
+        quadTiltConstraintsSigmas, 
+        beamlineX.bpmFree, 
+        beamlineX.quadShiftsFree, 
+        beamlineX.quadTiltsFree, 
+        chi2Y, 
+        chi2X, 
+        ndfY, 
+        ndfX, 
+        alignmentCov, 
+        bpmCovs)
