@@ -88,6 +88,10 @@ beamlineX.setBpmShifts(bpmShiftsShort)
 beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
 beamlineX.setQuadBPMDistances(quadToBPMLenght)
 beamlineX.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+beamlineX.setBeamCov(
+        FacetConstraints.referenceBeamSizeShort, 
+        FacetConstraints.referenceBeamDivergenceShort, 
+        FacetConstraints.referenceBeamCorrelationShort)
 
 # ------------------------------------------------------
 beamlineY = E320BeamlineFDF()
@@ -99,6 +103,10 @@ beamlineY.setBpmShifts(bpmShiftsLong)
 beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
 beamlineY.setQuadBPMDistances(quadToBPMLenght)
 beamlineY.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+beamlineY.setBeamCov(
+        FacetConstraints.referenceBeamSizeLong, 
+        FacetConstraints.referenceBeamDivergenceLong, 
+        FacetConstraints.referenceBeamCorrelationLong)
 
 # ------------------------------------------------------
 beamWriterCfg = RootOrbitFitWriter.Config()

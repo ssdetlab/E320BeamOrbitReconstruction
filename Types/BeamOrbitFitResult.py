@@ -14,10 +14,14 @@ class BeamOrbitFitResult:
             referenceCov: npt.NDArray[np.float64],
             referencePos: float,
             energyEst: float,
-            chi2) -> None:
+            chi2, 
+            beamCov: npt.NDArray[np.float64]) -> None:
         self.beamStates = beamStates
         self.referenceVec = referenceVec
         self.referenceCov = referenceCov
         self.referencePos = referencePos
         self.energyEst = energyEst
         self.chi2 = chi2
+
+        # Beam (x, x') covariance at the reference within one bunch [m, rad]
+        self.beamCov = beamCov

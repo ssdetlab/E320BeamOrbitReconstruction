@@ -85,9 +85,12 @@ class BeamOrbit:
         # Orbit fit covariance at the reference (x, x', y, y') [m, rad]
         self.referenceCov = getPlanesCov(orbitFitX.referenceCov, orbitFitY.referenceCov)
 
+        # Beam covariance at the reference within one bunch (x, x', y, y') [m, rad]
+        self.referenceBeamCov = getPlanesCov(orbitFitX.beamCov, orbitFitY.beamCov)
+
         # Measurement covariance at the reference (x, x', y, y') [m, rad]
         # (sum of the per-event components)
-        self.referenceMeasurementCov = np.array(self.referenceCov)
+        self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst

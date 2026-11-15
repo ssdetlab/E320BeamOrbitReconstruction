@@ -98,6 +98,10 @@ def processRun(
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineX.setBeamCov(
+            FacetConstraints.referenceBeamSizeShort, 
+            FacetConstraints.referenceBeamDivergenceShort, 
+            FacetConstraints.referenceBeamCorrelationShort)
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -109,6 +113,10 @@ def processRun(
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineY.setBeamCov(
+            FacetConstraints.referenceBeamSizeLong, 
+            FacetConstraints.referenceBeamDivergenceLong, 
+            FacetConstraints.referenceBeamCorrelationLong)
     
     # ------------------------------------------------------
     outDir = Path(outDirPath + "/" + runPrefix)
