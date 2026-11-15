@@ -73,6 +73,9 @@ class E320Beamline(ABC):
         self.referenceDist = 0
         self.toReference = FreePropagation(self.referenceDist)
 
+        # Beam (x, x') covariance at the reference within one bunch [m, rad]
+        self.beamCov = np.zeros(shape=(2, 2), dtype=float)
+
         # Free parameters of the alignment fit
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
         self.bpmFree = np.zeros(shape=(4), dtype=bool)
@@ -197,6 +200,20 @@ class E320Beamline(ABC):
         self.bpm0CenterPrimary = bpm0Center
         self.referenceDist = distance
         self.toReference = FreePropagation(distance)
+
+    def setBeamCov(self, size: float, divergence: float, correlation: float) -> None:
+        """
+        Set the (x, x') covariance of the beam at the reference 
+        within one bunch
+
+        size: beam size [m]
+        divergence: beam divergence [rad]
+        correlation: size-divergence correlation coefficient
+        """
+        self.beamCov[0,0] = size**2
+        self.beamCov[0,1] = correlation * size * divergence
+        self.beamCov[1,0] = correlation * size * divergence
+        self.beamCov[1,1] = divergence**2
 
     def setBpmFree(self, free: npt.NDArray[np.bool_]) -> None:
         """
@@ -486,7 +503,14 @@ class E320Beamline(ABC):
         vec = self.toReference.propagate(beamVec[None,:])[0]
         cov = self.toReference.ABCD @ beamCov @ self.toReference.ABCD.T
         states = self.getBeamStates(bpmMeas, bpmErrs, beamVec, beamCov, grads)
-        return BeamOrbitFitResult(states, vec, cov, self.bpm0CenterPrimary + self.referenceDist, self.energy, chi2)
+        return BeamOrbitFitResult(
+                states, 
+                vec, 
+                cov, 
+                self.bpm0CenterPrimary + self.referenceDist, 
+                self.energy, 
+                chi2, 
+                np.array(self.beamCov))
 
     def getBeamlineChi2Block(self, bpmShots, bpmErrs, quadGrads):
         """

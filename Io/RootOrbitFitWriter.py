@@ -74,6 +74,9 @@ class RootOrbitFitWriter:
         # Predicted (x, x', y, y') covariance at the reference
         self.referenceCov = ROOT.TMatrixD(4, 4)
 
+        # (x, x', y, y') beam covariance at the reference within one bunch
+        self.referenceBeamCov = ROOT.TMatrixD(4, 4)
+
         # (x, x', y, y') measurement covariance at the reference
         self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
 
@@ -120,6 +123,9 @@ class RootOrbitFitWriter:
 
         # Predicted (x, x', y, y') covariance at the reference
         self.tree.Branch("referenceCov", self.referenceCov, bufSize, splitLvl)
+
+        # (x, x', y, y') beam covariance at the reference within one bunch
+        self.tree.Branch("referenceBeamCov", self.referenceBeamCov, bufSize, splitLvl)
 
         # (x, x', y, y') measurement covariance at the reference
         self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
@@ -251,6 +257,9 @@ class RootOrbitFitWriter:
 
         # (x, x', y, y') covariance at the reference [mm, rad]
         setCov(self.referenceCov, referenceCov)
+
+        # (x, x', y, y') beam covariance at the reference within one bunch [mm, rad]
+        setCov(self.referenceBeamCov, getCovMmRad(fittedOrbit.referenceBeamCov))
 
         # (x, x', y, y') measurement covariance at the reference [mm, rad]
         setCov(self.referenceMeasurementCov, getCovMmRad(fittedOrbit.referenceMeasurementCov))
