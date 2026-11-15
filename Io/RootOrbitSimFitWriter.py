@@ -3,6 +3,7 @@ from ctypes import c_double, c_uint64
 from Geometry.GeneralConstraints import GeneralConstraints
 
 import numpy as np
+import numpy.typing as npt
 
 class RootOrbitSimFitWriter:
     """
@@ -70,11 +71,23 @@ class RootOrbitSimFitWriter:
         # Estimated non-centered momentum pulls at the reference
         self.referenceAnglePullsEst = ROOT.TVector2()
 
-        # Predicted vertex covariance at the reference
-        self.referencePositionCov = ROOT.TMatrixD(2, 2)
+        # Predicted (x, x', y, y') covariance at the reference
+        self.referenceCov = ROOT.TMatrixD(4, 4)
 
-        # Predicted angle covariance at the reference
-        self.referenceAngleCov = ROOT.TMatrixD(2, 2)
+        # (x, x', y, y') beam covariance at the reference within one bunch
+        self.referenceBeamCov = ROOT.TMatrixD(4, 4)
+
+        # (x, x', y, y') measurement covariance at the reference
+        self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
+
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty
+        self.referenceAlignmentCov = ROOT.TMatrixD(4, 4)
+
+        # (x, x', y, y') shifts at the reference for the alignment samples
+        self.referenceAlignmentSampleShifts = ROOT.std.vector("TVectorD")()
+
+        # (x, x', y, y') covariance at the reference from the alignment samples
+        self.referenceAlignmentSampleCov = ROOT.TMatrixD(4, 4)
 
         # Event ID
         self.eventId = c_uint64(0)
@@ -83,6 +96,7 @@ class RootOrbitSimFitWriter:
         self.quad1Grad = c_double(0)
         self.quad2Grad = c_double(0)
         self.quad3Grad = c_double(0)
+        self.steerXCOR = c_double(0)
 
         # --------------------------------------------------------------
         # True hits
@@ -133,11 +147,23 @@ class RootOrbitSimFitWriter:
         # Predicted momentum at the reference
         self.tree.Branch("referenceMomentumEst", self.referenceMomentumEst, bufSize, splitLvl)
 
-        # Predicted vertex covariance at the reference
-        self.tree.Branch("referencePositionCov", self.referencePositionCov, bufSize, splitLvl)
+        # Predicted (x, x', y, y') covariance at the reference
+        self.tree.Branch("referenceCov", self.referenceCov, bufSize, splitLvl)
 
-        # Predicted angle covariance at the reference
-        self.tree.Branch("referenceAngleCov", self.referenceAngleCov, bufSize, splitLvl)
+        # (x, x', y, y') beam covariance at the reference within one bunch
+        self.tree.Branch("referenceBeamCov", self.referenceBeamCov, bufSize, splitLvl)
+
+        # (x, x', y, y') measurement covariance at the reference
+        self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
+
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty
+        self.tree.Branch("referenceAlignmentCov", self.referenceAlignmentCov, bufSize, splitLvl)
+
+        # (x, x', y, y') shifts at the reference for the alignment samples
+        self.tree.Branch("referenceAlignmentSampleShifts", self.referenceAlignmentSampleShifts, bufSize, splitLvl)
+
+        # (x, x', y, y') covariance at the reference from the alignment samples
+        self.tree.Branch("referenceAlignmentSampleCov", self.referenceAlignmentSampleCov, bufSize, splitLvl)
 
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
@@ -152,6 +178,7 @@ class RootOrbitSimFitWriter:
         self.tree.Branch("quad1Grad", self.quad1Grad, "quad1Grad/D")
         self.tree.Branch("quad2Grad", self.quad2Grad, "quad2Grad/D")
         self.tree.Branch("quad3Grad", self.quad3Grad, "quad3Grad/D")
+        self.tree.Branch("steerXCOR", self.steerXCOR, "steerXCOR/D")
 
         # --------------------------------------------------------------
         # True hits
@@ -175,6 +202,36 @@ class RootOrbitSimFitWriter:
         self.file.Close()
 
     def write(self, fittedOrbit, magnets):
+        def getCovMmRad(cov: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Convert a (x, x', y, y') covariance to the output units
+
+            cov: 4x4 covariance [m, rad]
+
+            return: 4x4 covariance [mm, rad]
+            """
+            covScale = np.zeros(shape=(4), dtype=float)
+            covScale[0] = 1e3 # x
+            covScale[1] = 1.0 # x'
+            covScale[2] = 1e3 # y
+            covScale[3] = 1.0 # y'
+            covMmRad = np.zeros(shape=(4, 4), dtype=float)
+            for i in range(4):
+                for j in range(4):
+                    covMmRad[i, j] = cov[i, j] * covScale[i] * covScale[j]
+            return covMmRad
+
+        def setCov(matrix: ROOT.TMatrixD, cov: npt.NDArray[np.float64]) -> None:
+            """
+            Set a 4x4 TMatrixD member
+
+            matrix: TMatrixD member to be set
+            cov: 4x4 covariance in the output units
+            """
+            for i in range(4):
+                for j in range(4):
+                    matrix[i][j] = cov[i, j]
+
         # --------------------------------------------------------------
         # Clear the truth containers
 
@@ -255,9 +312,13 @@ class RootOrbitSimFitWriter:
                 referencePositionEst[1],
                 -referencePositionEst[0])
 
+        # Predicted (x, x', y, y') covariance at the reference [mm, rad]
+        referenceCov = getCovMmRad(fittedOrbit.referenceCov)
+
         # Reference position pull
-        referencePositionCov = fittedOrbit.referencePositionCov * 1e6
-        referencePositionErrs = np.sqrt(np.linalg.diagonal(referencePositionCov))
+        referencePositionErrs = np.zeros(shape=(2), dtype=float)
+        referencePositionErrs[0] = np.sqrt(referenceCov[0, 0]) # x
+        referencePositionErrs[1] = np.sqrt(referenceCov[2, 2]) # y
         referencePositionPullsEst = (referencePositionTruth[:-1] - referencePositionEst[:-1]) / referencePositionErrs
         self.referencePositionPullsEst.SetXYZ(
                 0,
@@ -274,23 +335,39 @@ class RootOrbitSimFitWriter:
                 energyEst)
 
         # Reference angle pull
-        referenceAngleCov = fittedOrbit.referenceAngleCov
-        referenceAngleErrs = np.sqrt(np.linalg.diagonal(referenceAngleCov))
+        referenceAngleErrs = np.zeros(shape=(2), dtype=float)
+        referenceAngleErrs[0] = np.sqrt(referenceCov[1, 1]) # x'
+        referenceAngleErrs[1] = np.sqrt(referenceCov[3, 3]) # y'
         referenceAngleResiduals = np.array([self.referenceMomentumTruth.Theta() - self.referenceMomentumEst.Theta(), self.referenceMomentumTruth.Phi() - self.referenceMomentumEst.Phi()])
         referenceAnglePullsEst = referenceAngleResiduals / referenceAngleErrs
         self.referenceAnglePullsEst.Set(
                 referenceAnglePullsEst[0],
                 referenceAnglePullsEst[1])
 
-        # Vertex covariance at the reference
-        for i in range(2):
-            for j in range(2):
-                self.referencePositionCov[i][j] = referencePositionCov[i, j]
+        # (x, x', y, y') covariance at the reference [mm, rad]
+        setCov(self.referenceCov, referenceCov)
 
-        # Angle covariance at the reference
-        for i in range(2):
-            for j in range(2):
-                self.referenceAngleCov[i][j] = referenceAngleCov[i, j]
+        # (x, x', y, y') beam covariance at the reference within one bunch [mm, rad]
+        setCov(self.referenceBeamCov, getCovMmRad(fittedOrbit.referenceBeamCov))
+
+        # (x, x', y, y') measurement covariance at the reference [mm, rad]
+        setCov(self.referenceMeasurementCov, getCovMmRad(fittedOrbit.referenceMeasurementCov))
+
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty [mm, rad]
+        setCov(self.referenceAlignmentCov, getCovMmRad(fittedOrbit.referenceAlignmentCov))
+
+        # (x, x', y, y') shifts at the reference for the alignment samples [mm, rad]
+        self.referenceAlignmentSampleShifts.clear()
+        for shift in fittedOrbit.referenceAlignmentSampleShifts:
+            sampleShift = ROOT.TVectorD(4)
+            sampleShift[0] = shift[0] * 1e3 # x
+            sampleShift[1] = shift[1]       # x'
+            sampleShift[2] = shift[2] * 1e3 # y
+            sampleShift[3] = shift[3]       # y'
+            self.referenceAlignmentSampleShifts.push_back(sampleShift)
+
+        # (x, x', y, y') covariance at the reference from the alignment samples [mm, rad]
+        setCov(self.referenceAlignmentSampleCov, getCovMmRad(fittedOrbit.referenceAlignmentSampleCov))
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
@@ -299,6 +376,7 @@ class RootOrbitSimFitWriter:
         self.quad1Grad.value = magnets[0]
         self.quad2Grad.value = magnets[1]
         self.quad3Grad.value = magnets[2]
+        # self.steerXCOR.value = magnets[3]
 
         for idx in range(len(fittedOrbit.bpmMeas)):
             # Measurement hits

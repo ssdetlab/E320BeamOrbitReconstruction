@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 
 from Geometry.GeneralConstraints import GeneralConstraints
 from Types.BeamOrbitFitResult import BeamOrbitFitResult
@@ -16,6 +17,25 @@ class BeamOrbitSim:
             referenceMomentumTruth, 
             energyTruth,
             eventId) -> None:
+        def getPlanesCov(
+                covX: npt.NDArray[np.float64], 
+                covY: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Combine the per-plane covariances into the (x, x', y, y') covariance, 
+            the planes are uncorrelated
+
+            covX: (x, x') covariance [m, rad]
+            covY: (y, y') covariance [m, rad]
+
+            return: 4x4 (x, x', y, y') covariance [m, rad]
+            """
+            cov = np.zeros(shape=(4, 4), dtype=np.float64)
+            for i in range(2):
+                for j in range(2):
+                    cov[i, j] = covX[i, j]
+                    cov[2 + i, 2 + j] = covY[i, j]
+            return cov
+
         nStates = len(orbitFitX.beamStates)
 
         self.bpmMeas = np.zeros(shape=(nStates, 2), dtype=np.float64)
@@ -80,11 +100,31 @@ class BeamOrbitSim:
         momY = momZ * tanThetaY
         self.referenceMomentumEst = np.array([momX, momY, momZ])
 
-        # Get reference position covariance
-        self.referencePositionCov = np.array([[orbitFitX.referenceCov[0][0], 0], [0, orbitFitY.referenceCov[0][0]]], dtype=np.float64)
+        # Orbit fit covariance at the reference (x, x', y, y') [m, rad]
+        self.referenceCov = getPlanesCov(orbitFitX.referenceCov, orbitFitY.referenceCov)
 
-        # Get angle estimate covariance at the reference
-        self.referenceAngleCov = np.array([[orbitFitX.referenceCov[1][1], 0], [0, orbitFitY.referenceCov[1][1]]], dtype=np.float64)
+        # Beam covariance at the reference within one bunch (x, x', y, y') [m, rad]
+        self.referenceBeamCov = getPlanesCov(orbitFitX.beamCov, orbitFitY.beamCov)
+
+        # Covariance at the reference due to the alignment uncertainty (x, x', y, y') [m, rad]
+        # (common to all events, not part of the measurement covariance)
+        self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
+
+        # Shifts at the reference for the alignment samples (x, x', y, y') [m, rad]
+        # (common to all events)
+        nSamples = len(orbitFitX.alignmentSampleShifts)
+        self.referenceAlignmentSampleShifts = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        for k in range(nSamples):
+            self.referenceAlignmentSampleShifts[k,0:2] = orbitFitX.alignmentSampleShifts[k]
+            self.referenceAlignmentSampleShifts[k,2:4] = orbitFitY.alignmentSampleShifts[k]
+
+        # Covariance at the reference from the alignment samples (x, x', y, y') [m, rad]
+        # (common to all events, not part of the measurement covariance)
+        self.referenceAlignmentSampleCov = getPlanesCov(orbitFitX.alignmentSampleCov, orbitFitY.alignmentSampleCov)
+
+        # Measurement covariance at the reference (x, x', y, y') [m, rad]
+        # (sum of the per-event components)
+        self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst
