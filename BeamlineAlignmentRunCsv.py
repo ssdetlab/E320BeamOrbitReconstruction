@@ -71,14 +71,15 @@ quadShiftsShort = np.array([
 # quadShiftsLong = quadCenterLong
 # quadShiftsShort = quadCenterShort
 
+# Quad tilts, fixed in the alignment fit at the survey values [rad]
 quadTiltsLong = np.array([
-    0,
-    0,
-    0], dtype=np.float64)
+    FacetConstraints.quad1Yaw,
+    FacetConstraints.quad2Yaw,
+    FacetConstraints.quad3Yaw], dtype=np.float64)
 quadTiltsShort = np.array([
-    0,
-    0,
-    0], dtype=np.float64)
+    FacetConstraints.quad1Pitch,
+    FacetConstraints.quad2Pitch,
+    FacetConstraints.quad3Pitch], dtype=np.float64)
 
 quadLengths = np.array([
     2 * FacetConstraints.quad1HalfPrimary,
@@ -237,31 +238,84 @@ alignmentWriterCfg.treeName = "alignment-parameters"
 alignmentWriterCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/alignment-parameters.root"
 
 alignmentWriter = E320RootBeamlineAlignmentWriter(alignmentWriterCfg)
+
+# Positions of the beamline elements [x, y, z] [m]
+bpmPrimary = np.array([
+    FacetConstraints.bpm0CenterPrimary,
+    FacetConstraints.bpm1CenterPrimary,
+    FacetConstraints.bpm2CenterPrimary,
+    FacetConstraints.bpm3CenterPrimary], dtype=np.float64)
+quadPrimary = np.array([
+    FacetConstraints.quad1CenterPrimary,
+    FacetConstraints.quad2CenterPrimary,
+    FacetConstraints.quad3CenterPrimary], dtype=np.float64)
+
+bpmPositions = []
+bpmPositionConstraintsMeans = []
+bpmPositionConstraintsSigmas = []
+for i in range(4):
+    bpmPositions.append(np.array([alignmentParsX[i], alignmentParsY[i], bpmPrimary[i]]))
+    bpmPositionConstraintsMeans.append(np.array([
+        beamlineX.bpmConstraintMean[i], 
+        beamlineY.bpmConstraintMean[i], 
+        bpmPrimary[i]]))
+    bpmPositionConstraintsSigmas.append(np.array([
+        beamlineX.bpmConstraintSigma[i], 
+        beamlineY.bpmConstraintSigma[i], 
+        np.inf]))
+
+quadPositions = []
+quadTilts = []
+quadPositionConstraintsMeans = []
+quadTiltConstraintsMeans = []
+quadPositionConstraintsSigmas = []
+quadTiltConstraintsSigmas = []
+for i in range(3):
+    quadPositions.append(np.array([alignmentParsX[4 + i], alignmentParsY[4 + i], quadPrimary[i]]))
+    quadTilts.append(np.array([alignmentParsX[7 + i], alignmentParsY[7 + i]]))
+    quadPositionConstraintsMeans.append(np.array([
+        beamlineX.quadShiftsConstraintMean[i], 
+        beamlineY.quadShiftsConstraintMean[i], 
+        quadPrimary[i]]))
+    quadTiltConstraintsMeans.append(np.array([
+        beamlineX.quadTiltsConstraintMean[i], 
+        beamlineY.quadTiltsConstraintMean[i]]))
+    quadPositionConstraintsSigmas.append(np.array([
+        beamlineX.quadShiftsConstraintSigma[i], 
+        beamlineY.quadShiftsConstraintSigma[i], 
+        np.inf]))
+    quadTiltConstraintsSigmas.append(np.array([
+        beamlineX.quadTiltsConstraintSigma[i], 
+        beamlineY.quadTiltsConstraintSigma[i]]))
+
+# Alignment fit covariance [Short, Long] [m, rad]
+alignmentCov = np.zeros(shape=(20, 20), dtype=np.float64)
+alignmentCov[0:10, 0:10] = alignmentCovX
+alignmentCov[10:20, 10:20] = alignmentCovY
+
+# BPM uncertainties used in the alignment fit (mean over the shots) [m^2]
+bpmCovs = []
+for i in range(4):
+    bpmCovs.append(np.array([
+        [np.mean(bpmErrsX[:,i]**2), 0.0], 
+        [0.0, np.mean(bpmErrsY[:,i]**2)]]))
+
 alignmentWriter.write(
-        np.array([
-            FacetConstraints.bpm0CenterPrimary,
-            FacetConstraints.bpm1CenterPrimary,
-            FacetConstraints.bpm2CenterPrimary,
-            FacetConstraints.bpm3CenterPrimary]),
-        np.array([
-            alignmentParsY[0],
-            alignmentParsY[1],
-            alignmentParsY[2],
-            alignmentParsY[3]]),
-        np.array([
-            alignmentParsX[0],
-            alignmentParsX[1],
-            alignmentParsX[2],
-            alignmentParsX[3]]),
-        np.array([
-            FacetConstraints.quad1CenterPrimary,
-            FacetConstraints.quad2CenterPrimary,
-            FacetConstraints.quad3CenterPrimary]),
-        np.array([
-            alignmentParsY[4],
-            alignmentParsY[5],
-            alignmentParsY[6]]),
-        np.array([
-            alignmentParsX[4],
-            alignmentParsX[5],
-            alignmentParsX[6]]))
+        bpmPositions, 
+        bpmPositionConstraintsMeans, 
+        bpmPositionConstraintsSigmas, 
+        quadPositions, 
+        quadTilts, 
+        quadPositionConstraintsMeans, 
+        quadTiltConstraintsMeans, 
+        quadPositionConstraintsSigmas, 
+        quadTiltConstraintsSigmas, 
+        beamlineX.bpmFree, 
+        beamlineX.quadShiftsFree, 
+        beamlineX.quadTiltsFree, 
+        chi2Y, 
+        chi2X, 
+        ndfY, 
+        ndfX, 
+        alignmentCov, 
+        bpmCovs)
