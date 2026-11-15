@@ -2,6 +2,7 @@ import ROOT
 import numpy as np
 
 from Types.BPMMeasurement import BPMMeasurement
+from Geometry.FacetConstraints import FacetConstraints
 
 class E320RootDataReader:
     """
@@ -87,7 +88,9 @@ class E320RootDataReader:
         bpm3156Ev.measurement = np.array(
                 [self.getPv(detEvent, self.bpm_3156_x_key), 
                  self.getPv(detEvent, self.bpm_3156_y_key)]) * 1e-3
-        bpm3156Ev.cov = np.array([[0.05**2, 0.0], [0.0, 0.05**2]]) * 1e-6
+        bpm3156Ev.cov = np.array([
+                [FacetConstraints.bpm0ResolutionShort**2, 0.0], 
+                [0.0, FacetConstraints.bpm0ResolutionLong**2]])
         bpm3156Ev.geoId = 3156
         bpm3156Ev.trigN = detEvent.trg_n
         bpm3156Ev.runNumber = detEvent.run_number
@@ -97,7 +100,9 @@ class E320RootDataReader:
         bpm3218Ev.measurement = np.array(
                 [self.getPv(detEvent, self.bpm_quad0_3218_x_key), 
                  self.getPv(detEvent, self.bpm_quad0_3218_y_key)]) * 1e-3
-        bpm3218Ev.cov = np.array([[0.05**2, 0.0], [0.0, 0.05**2]]) * 1e-6
+        bpm3218Ev.cov = np.array([
+                [FacetConstraints.bpm1ResolutionShort**2, 0.0], 
+                [0.0, FacetConstraints.bpm1ResolutionLong**2]])
         bpm3218Ev.geoId = 3218
         bpm3218Ev.trigN = detEvent.trg_n
         bpm3218Ev.runNumber = detEvent.run_number
@@ -107,7 +112,9 @@ class E320RootDataReader:
         bpm3265Ev.measurement = np.array(
                 [self.getPv(detEvent, self.bpm_quad1_3265_x_key), 
                  self.getPv(detEvent, self.bpm_quad1_3265_y_key)]) * 1e-3
-        bpm3265Ev.cov = np.array([[0.15**2, 0.0], [0.0, 0.15**2]]) * 1e-6
+        bpm3265Ev.cov = np.array([
+                [FacetConstraints.bpm2ResolutionShort**2, 0.0], 
+                [0.0, FacetConstraints.bpm2ResolutionLong**2]])
         bpm3265Ev.geoId = 3265
         bpm3265Ev.trigN = detEvent.trg_n
         bpm3265Ev.runNumber = detEvent.run_number
@@ -117,7 +124,9 @@ class E320RootDataReader:
         bpm3315Ev.measurement = np.array(
                 [self.getPv(detEvent, self.bpm_quad2_3315_x_key), 
                  self.getPv(detEvent, self.bpm_quad2_3315_y_key)]) * 1e-3
-        bpm3315Ev.cov = np.array([[0.15**2, 0.0], [0.0, 0.15**2]]) * 1e-6
+        bpm3315Ev.cov = np.array([
+                [FacetConstraints.bpm3ResolutionShort**2, 0.0], 
+                [0.0, FacetConstraints.bpm3ResolutionLong**2]])
         bpm3315Ev.geoId = 3315
         bpm3315Ev.trigN = detEvent.trg_n
         bpm3315Ev.runNumber = detEvent.run_number

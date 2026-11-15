@@ -205,19 +205,19 @@ for eventId,row in enumerate(dataReader):
 
     measX = np.array([row[0], row[1], row[2], row[3]], dtype=float)
     errsX = np.array(
-            [0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.15 * 1e-3, 
-             0.15 * 1e-3])
+            [FacetConstraints.bpm0ResolutionShort, 
+             FacetConstraints.bpm1ResolutionShort, 
+             FacetConstraints.bpm2ResolutionShort, 
+             FacetConstraints.bpm3ResolutionShort])
     bpmShotsX.append(measX)
     bpmErrsX.append(errsX)
 
     measY = np.array([row[4], row[5], row[6], row[7]], dtype=float)
     errsY = np.array(
-            [0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.15 * 1e-3, 
-             0.15 * 1e-3])
+            [FacetConstraints.bpm0ResolutionLong, 
+             FacetConstraints.bpm1ResolutionLong, 
+             FacetConstraints.bpm2ResolutionLong, 
+             FacetConstraints.bpm3ResolutionLong])
     bpmShotsY.append(measY)
     bpmErrsY.append(errsY)
 

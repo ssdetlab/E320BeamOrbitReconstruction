@@ -31,6 +31,17 @@ class FacetConstraints:
     bpm2CenterShort = 0.0
     bpm3CenterShort = 0.0
 
+    # Resolution of the BPMs [m]
+    bpm0ResolutionLong = 0.05 * 1e-3
+    bpm1ResolutionLong = 0.05 * 1e-3
+    bpm2ResolutionLong = 0.15 * 1e-3
+    bpm3ResolutionLong = 0.15 * 1e-3
+
+    bpm0ResolutionShort = 0.05 * 1e-3
+    bpm1ResolutionShort = 0.05 * 1e-3
+    bpm2ResolutionShort = 0.15 * 1e-3
+    bpm3ResolutionShort = 0.15 * 1e-3
+
     # Parameters of the quads
     quad0CenterPrimary = 1990.925
     quad1CenterPrimary = 1996.982
