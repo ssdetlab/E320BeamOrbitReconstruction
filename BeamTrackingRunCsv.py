@@ -99,6 +99,7 @@ beamlineX.setBeamCov(
         FacetConstraints.referenceBeamSizeShort, 
         FacetConstraints.referenceBeamDivergenceShort, 
         FacetConstraints.referenceBeamCorrelationShort)
+beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
 
 # ------------------------------------------------------
 beamlineY = E320BeamlineFDF()
@@ -115,6 +116,7 @@ beamlineY.setBeamCov(
         FacetConstraints.referenceBeamSizeLong, 
         FacetConstraints.referenceBeamDivergenceLong, 
         FacetConstraints.referenceBeamCorrelationLong)
+beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
 
 # ------------------------------------------------------
 beamWriterCfg = RootOrbitFitWriter.Config()

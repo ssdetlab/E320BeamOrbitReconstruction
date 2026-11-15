@@ -80,6 +80,9 @@ class RootOrbitFitWriter:
         # (x, x', y, y') measurement covariance at the reference
         self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
 
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty
+        self.referenceAlignmentCov = ROOT.TMatrixD(4, 4)
+
         # Event ID
         self.eventId = c_uint64(0)
 
@@ -129,6 +132,9 @@ class RootOrbitFitWriter:
 
         # (x, x', y, y') measurement covariance at the reference
         self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
+
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty
+        self.tree.Branch("referenceAlignmentCov", self.referenceAlignmentCov, bufSize, splitLvl)
 
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
@@ -263,6 +269,9 @@ class RootOrbitFitWriter:
 
         # (x, x', y, y') measurement covariance at the reference [mm, rad]
         setCov(self.referenceMeasurementCov, getCovMmRad(fittedOrbit.referenceMeasurementCov))
+
+        # (x, x', y, y') covariance at the reference due to the alignment uncertainty [mm, rad]
+        setCov(self.referenceAlignmentCov, getCovMmRad(fittedOrbit.referenceAlignmentCov))
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId

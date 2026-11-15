@@ -15,7 +15,8 @@ class BeamOrbitFitResult:
             referencePos: float,
             energyEst: float,
             chi2, 
-            beamCov: npt.NDArray[np.float64]) -> None:
+            beamCov: npt.NDArray[np.float64], 
+            alignmentOrbitCov: npt.NDArray[np.float64]) -> None:
         self.beamStates = beamStates
         self.referenceVec = referenceVec
         self.referenceCov = referenceCov
@@ -25,3 +26,6 @@ class BeamOrbitFitResult:
 
         # Beam (x, x') covariance at the reference within one bunch [m, rad]
         self.beamCov = beamCov
+
+        # (x, x') covariance at the reference due to the alignment uncertainty [m, rad]
+        self.alignmentOrbitCov = alignmentOrbitCov

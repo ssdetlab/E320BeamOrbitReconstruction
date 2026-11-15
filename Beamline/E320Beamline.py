@@ -76,6 +76,10 @@ class E320Beamline(ABC):
         # Beam (x, x') covariance at the reference within one bunch [m, rad]
         self.beamCov = np.zeros(shape=(2, 2), dtype=float)
 
+        # Alignment fit covariance in the getAlignmentPars order [m, rad]
+        # (zero -> no alignment contribution to the orbit covariance)
+        self.alignmentCov = np.zeros(shape=(10, 10), dtype=float)
+
         # Free parameters of the alignment fit
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
         self.bpmFree = np.zeros(shape=(4), dtype=bool)
@@ -214,6 +218,17 @@ class E320Beamline(ABC):
         self.beamCov[0,1] = correlation * size * divergence
         self.beamCov[1,0] = correlation * size * divergence
         self.beamCov[1,1] = divergence**2
+
+    def setAlignmentCov(self, cov: npt.NDArray[np.float64]) -> None:
+        """
+        Set the alignment fit covariance propagated to the orbit 
+        at the reference by optimizeBeam
+
+        cov: 10x10 covariance in the getAlignmentPars order [m, rad]
+        """
+        for i in range(10):
+            for j in range(10):
+                self.alignmentCov[i,j] = cov[i,j]
 
     def setBpmFree(self, free: npt.NDArray[np.bool_]) -> None:
         """
@@ -503,6 +518,14 @@ class E320Beamline(ABC):
         vec = self.toReference.propagate(beamVec[None,:])[0]
         cov = self.toReference.ABCD @ beamCov @ self.toReference.ABCD.T
         states = self.getBeamStates(bpmMeas, bpmErrs, beamVec, beamCov, grads)
+
+        # Orbit covariance at the reference due to the alignment uncertainty, 
+        # common to all events
+        alignmentOrbitCov = np.zeros(shape=(2, 2), dtype=float)
+        if (np.any(self.alignmentCov != 0)):
+            orbitDer = self.getOrbitResponseMatrix(bpmErrs, grads)
+            alignmentOrbitCov = orbitDer @ self.alignmentCov @ orbitDer.T
+
         return BeamOrbitFitResult(
                 states, 
                 vec, 
@@ -510,7 +533,8 @@ class E320Beamline(ABC):
                 self.bpm0CenterPrimary + self.referenceDist, 
                 self.energy, 
                 chi2, 
-                np.array(self.beamCov))
+                np.array(self.beamCov), 
+                alignmentOrbitCov)
 
     def getBeamlineChi2Block(self, bpmShots, bpmErrs, quadGrads):
         """
