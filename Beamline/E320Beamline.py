@@ -77,12 +77,12 @@ class E320Beamline(ABC):
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
         self.bpmFree = np.zeros(shape=(4), dtype=bool)
         self.bpmFree[0] = False # before the IP
-        self.bpmFree[1] = True # after quad 0
+        self.bpmFree[1] = False # after quad 0
         self.bpmFree[2] = True # after quad 1
         self.bpmFree[3] = True # after quad 2
 
         self.quadShiftsFree = np.zeros(shape=(3), dtype=bool)
-        self.quadShiftsFree[0] = False # quad 0
+        self.quadShiftsFree[0] = True # quad 0
         self.quadShiftsFree[1] = True # quad 1
         self.quadShiftsFree[2] = True # quad 2
 
@@ -338,6 +338,33 @@ class E320Beamline(ABC):
     def getBeamStates(self, bpmMeas, bpmErrs, vec, cov, quadGrads) -> list[BeamState]:
         return []
 
+    def getBeamResponseBase(self, grads):
+        # Prediction for zero beam vector
+        return np.array(self.getBpms([0.0, 0.0], grads))
+
+    def getAlignmentResponseBase(self, grads):
+        # Prediction for zero beam vector
+        return np.array(self.getBpms([0.0, 0.0], grads))
+
+    def getBeamResponseMatrix(self, base, grads):
+        # Response to the beam vector (x, x') at BPM0
+        beamDer = np.zeros(shape=(4, 2), dtype=float)
+        beamDer[:,0] = np.array(self.getBpms([1.0, 0.0], grads)) - base
+        beamDer[:,1] = np.array(self.getBpms([0.0, 1.0], grads)) - base
+        return beamDer
+
+    def getAlignmentResponseMatrix(self, base, grads):
+        # Response to the alignment parameters vector
+        currentPars = self.getAlignmentPars()
+        alignDer = np.zeros(shape=(4, len(currentPars)), dtype=float)
+        for i in range(len(currentPars)):
+            shift = np.zeros_like(currentPars)
+            shift[i] += 1
+            self.setAlignmentPars(currentPars + shift)
+            alignDer[:,i] = np.array(self.getBpms([0.0, 0.0], grads)) - base
+            self.setAlignmentPars(currentPars)
+        return alignDer
+
     def fitBeamNewtonStep(self, bpmMeas, bpmErrs, grads):
         """
         Fit of the beam vector (x, x') at BPM0 for a single shot
@@ -356,12 +383,10 @@ class E320Beamline(ABC):
             beam positions at the bpms, chi2
         """
         # Prediction for zero beam vector
-        base = np.array(self.getBpms([0.0, 0.0], grads))
+        base = self.getBeamResponseBase(grads)
 
         # Response to the beam vector (x, x') at BPM0
-        beamDer = np.zeros(shape=(4, 2), dtype=float)
-        beamDer[:,0] = np.array(self.getBpms([1.0, 0.0], grads)) - base
-        beamDer[:,1] = np.array(self.getBpms([0.0, 1.0], grads)) - base
+        beamDer = self.getBeamResponseMatrix(base, grads)
 
         # BPM weights
         weights = np.zeros(shape=(4, 4), dtype=float)
@@ -545,7 +570,7 @@ class E320Beamline(ABC):
             # Gaussian constraints, sigma = np.inf -> no contribution
             for iPar in freeIdx:
                 chi2 += ((pars[iPar] - constraintMean[iPar]) / constraintSigma[iPar])**2
-            return chi2
+            return float(chi2)
 
         def gradient(x: npt.NDArray[np.float64]):
             return approx_derivative(
