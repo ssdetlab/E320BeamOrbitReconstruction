@@ -338,23 +338,49 @@ class E320Beamline(ABC):
     def getBeamStates(self, bpmMeas, bpmErrs, vec, cov, quadGrads) -> list[BeamState]:
         return []
 
-    def getBeamResponseBase(self, grads):
-        # Prediction for zero beam vector
+    def getResponseBase(self, grads: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """
+        BPM prediction for zero beam vector (x, x') at BPM0
+        at the current alignment parameters
+
+        The BPM prediction is affine in the beam vector
+        and in the alignment parameters:
+            bpms = base + A (x, x') + B dPars
+
+        grads: quadrupole gradients [T/m]
+
+        return: base [m]
+        """
         return np.array(self.getBpms([0.0, 0.0], grads))
 
-    def getAlignmentResponseBase(self, grads):
-        # Prediction for zero beam vector
-        return np.array(self.getBpms([0.0, 0.0], grads))
+    def getBeamResponseMatrix(self, base: npt.NDArray[np.float64], grads: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """
+        Response of the BPM prediction to the beam vector (x, x') at BPM0
+        (exact, the prediction is affine in the beam vector)
 
-    def getBeamResponseMatrix(self, base, grads):
-        # Response to the beam vector (x, x') at BPM0
+        base: getResponseBase at the same alignment parameters and gradients [m]
+        grads: quadrupole gradients [T/m]
+
+        return: 4x2 matrix A [m/m, m/rad]
+        """
         beamDer = np.zeros(shape=(4, 2), dtype=float)
         beamDer[:,0] = np.array(self.getBpms([1.0, 0.0], grads)) - base
         beamDer[:,1] = np.array(self.getBpms([0.0, 1.0], grads)) - base
         return beamDer
 
-    def getAlignmentResponseMatrix(self, base, grads):
-        # Response to the alignment parameters vector
+    def getAlignmentResponseMatrix(self, base: npt.NDArray[np.float64], grads: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """
+        Response of the BPM prediction to the alignment parameters
+        (exact, the prediction is affine in the alignment parameters),
+        the alignment parameters are restored on return
+
+        base: getResponseBase at the same alignment parameters and gradients [m]
+        grads: quadrupole gradients [T/m]
+
+        return: 4x10 matrix B, columns in the getAlignmentPars order
+            [bpm0, bpm1, bpm2, bpm3, quad0, quad1, quad2] shifts [m/m] X
+            [quad0, quad1, quad2] tilts [m/rad]
+        """
         currentPars = self.getAlignmentPars()
         alignDer = np.zeros(shape=(4, len(currentPars)), dtype=float)
         for i in range(len(currentPars)):
@@ -380,6 +406,32 @@ class E320Beamline(ABC):
         weights[3,3] = 1.0 / bpmErrs[3]**2
         return weights
 
+    def getOrbitResponseMatrix(self, bpmErrs: npt.NDArray[np.float64], grads: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """
+        Response of the fitted beam vector (x, x') at the reference
+        to the alignment parameters (exact, the fitted beam vector
+        is linear in the alignment parameters):
+            S = -T (A^T W A)^-1 A^T W B
+        with T the BPM0 to reference propagation.
+        The orbit covariance due to the alignment covariance cov
+        is S cov S^T, the orbit shift due to the change dPars is S dPars
+
+        bpmErrs: bpm measurement errors [m]
+        grads: quadrupole gradients [T/m]
+
+        return: 2x10 matrix S, columns in the getAlignmentPars order,
+            rows (x, x') [m/m, m/rad; rad/m, rad/rad]
+        """
+        base = self.getResponseBase(grads)
+        beamDer = self.getBeamResponseMatrix(base, grads)
+        alignDer = self.getAlignmentResponseMatrix(base, grads)
+        weights = self.getBpmWeights(bpmErrs)
+
+        wBeamDer = weights @ beamDer
+        beamCov = np.linalg.inv(beamDer.T @ wBeamDer)
+
+        return -self.toReference.ABCD @ beamCov @ wBeamDer.T @ alignDer
+
     def fitBeamNewtonStep(self, bpmMeas, bpmErrs, grads):
         """
         Fit of the beam vector (x, x') at BPM0 for a single shot
@@ -398,7 +450,7 @@ class E320Beamline(ABC):
             beam positions at the bpms, chi2
         """
         # Prediction for zero beam vector
-        base = self.getBeamResponseBase(grads)
+        base = self.getResponseBase(grads)
 
         # Response to the beam vector (x, x') at BPM0
         beamDer = self.getBeamResponseMatrix(base, grads)
