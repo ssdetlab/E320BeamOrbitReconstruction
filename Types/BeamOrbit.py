@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 
 from Geometry.GeneralConstraints import GeneralConstraints
 from Types.BeamOrbitFitResult import BeamOrbitFitResult
@@ -12,6 +13,25 @@ class BeamOrbit:
             orbitFitX: BeamOrbitFitResult,
             orbitFitY: BeamOrbitFitResult,
             eventId) -> None:
+        def getPlanesCov(
+                covX: npt.NDArray[np.float64], 
+                covY: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Combine the per-plane covariances into the (x, x', y, y') covariance, 
+            the planes are uncorrelated
+
+            covX: (x, x') covariance [m, rad]
+            covY: (y, y') covariance [m, rad]
+
+            return: 4x4 (x, x', y, y') covariance [m, rad]
+            """
+            cov = np.zeros(shape=(4, 4), dtype=np.float64)
+            for i in range(2):
+                for j in range(2):
+                    cov[i, j] = covX[i, j]
+                    cov[2 + i, 2 + j] = covY[i, j]
+            return cov
+
         nStates = len(orbitFitX.beamStates)
 
         self.bpmMeas = np.zeros(shape=(nStates, 2), dtype=np.float64)
@@ -62,13 +82,12 @@ class BeamOrbit:
         momY = momZ * tanThetaY
         self.referenceMomentumEst = np.array([momX, momY, momZ])
 
-        # Get reference position covariance
-        self.referenceCov = np.array([
-            [orbitFitX.referenceCov[0][0], orbitFitX.referenceCov[0][1], 0.0, 0.0], 
-            [orbitFitX.referenceCov[1][0], orbitFitX.referenceCov[1][1], 0.0, 0.0],
-            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1]],
-            [0.0, 0.0, orbitFitY.referenceCov[1][0], orbitFitY.referenceCov[1][1]]], 
-                                             dtype=np.float64)
+        # Orbit fit covariance at the reference (x, x', y, y') [m, rad]
+        self.referenceCov = getPlanesCov(orbitFitX.referenceCov, orbitFitY.referenceCov)
+
+        # Measurement covariance at the reference (x, x', y, y') [m, rad]
+        # (sum of the per-event components)
+        self.referenceMeasurementCov = np.array(self.referenceCov)
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst

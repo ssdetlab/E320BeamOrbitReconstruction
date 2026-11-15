@@ -3,6 +3,7 @@ from ctypes import c_double, c_uint64
 from Geometry.GeneralConstraints import GeneralConstraints
 
 import numpy as np
+import numpy.typing as npt
 
 class RootOrbitFitWriter:
     """
@@ -73,6 +74,9 @@ class RootOrbitFitWriter:
         # Predicted (x, x', y, y') covariance at the reference
         self.referenceCov = ROOT.TMatrixD(4, 4)
 
+        # (x, x', y, y') measurement covariance at the reference
+        self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
+
         # Event ID
         self.eventId = c_uint64(0)
 
@@ -117,6 +121,9 @@ class RootOrbitFitWriter:
         # Predicted (x, x', y, y') covariance at the reference
         self.tree.Branch("referenceCov", self.referenceCov, bufSize, splitLvl)
 
+        # (x, x', y, y') measurement covariance at the reference
+        self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
+
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
 
@@ -137,6 +144,36 @@ class RootOrbitFitWriter:
         self.file.Close()
 
     def write(self, fittedOrbit, magnets):
+        def getCovMmRad(cov: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Convert a (x, x', y, y') covariance to the output units
+
+            cov: 4x4 covariance [m, rad]
+
+            return: 4x4 covariance [mm, rad]
+            """
+            covScale = np.zeros(shape=(4), dtype=float)
+            covScale[0] = 1e3 # x
+            covScale[1] = 1.0 # x'
+            covScale[2] = 1e3 # y
+            covScale[3] = 1.0 # y'
+            covMmRad = np.zeros(shape=(4, 4), dtype=float)
+            for i in range(4):
+                for j in range(4):
+                    covMmRad[i, j] = cov[i, j] * covScale[i] * covScale[j]
+            return covMmRad
+
+        def setCov(matrix: ROOT.TMatrixD, cov: npt.NDArray[np.float64]) -> None:
+            """
+            Set a 4x4 TMatrixD member
+
+            matrix: TMatrixD member to be set
+            cov: 4x4 covariance in the output units
+            """
+            for i in range(4):
+                for j in range(4):
+                    matrix[i][j] = cov[i, j]
+
         # --------------------------------------------------------------
         # Clear the observable containers
 
@@ -181,15 +218,7 @@ class RootOrbitFitWriter:
                 -referencePositionEst[0])
 
         # Predicted (x, x', y, y') covariance at the reference [mm, rad]
-        covScale = np.zeros(shape=(4), dtype=float)
-        covScale[0] = 1e3 # x
-        covScale[1] = 1.0 # x'
-        covScale[2] = 1e3 # y
-        covScale[3] = 1.0 # y'
-        referenceCov = np.zeros(shape=(4, 4), dtype=float)
-        for i in range(4):
-            for j in range(4):
-                referenceCov[i, j] = fittedOrbit.referenceCov[i, j] * covScale[i] * covScale[j]
+        referenceCov = getCovMmRad(fittedOrbit.referenceCov)
 
         # Reference position pull
         referencePositionErrs = np.zeros(shape=(2), dtype=float)
@@ -221,9 +250,10 @@ class RootOrbitFitWriter:
                 referenceAnglePullsEst[1])
 
         # (x, x', y, y') covariance at the reference [mm, rad]
-        for i in range(4):
-            for j in range(4):
-                self.referenceCov[i][j] = referenceCov[i, j]
+        setCov(self.referenceCov, referenceCov)
+
+        # (x, x', y, y') measurement covariance at the reference [mm, rad]
+        setCov(self.referenceMeasurementCov, getCovMmRad(fittedOrbit.referenceMeasurementCov))
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
