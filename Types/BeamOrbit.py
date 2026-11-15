@@ -92,6 +92,18 @@ class BeamOrbit:
         # (common to all events, not part of the measurement covariance)
         self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
 
+        # Shifts at the reference for the alignment samples (x, x', y, y') [m, rad]
+        # (common to all events)
+        nSamples = len(orbitFitX.alignmentSampleShifts)
+        self.referenceAlignmentSampleShifts = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        for k in range(nSamples):
+            self.referenceAlignmentSampleShifts[k,0:2] = orbitFitX.alignmentSampleShifts[k]
+            self.referenceAlignmentSampleShifts[k,2:4] = orbitFitY.alignmentSampleShifts[k]
+
+        # Covariance at the reference from the alignment samples (x, x', y, y') [m, rad]
+        # (common to all events, not part of the measurement covariance)
+        self.referenceAlignmentSampleCov = getPlanesCov(orbitFitX.alignmentSampleCov, orbitFitY.alignmentSampleCov)
+
         # Measurement covariance at the reference (x, x', y, y') [m, rad]
         # (sum of the per-event components)
         self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov

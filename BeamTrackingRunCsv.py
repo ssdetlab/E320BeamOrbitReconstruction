@@ -40,6 +40,21 @@ alignmentReaderCfg.treeName = "alignment-parameters"
 alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/quad_bpm_alignment/sm_steering/alignment/alignment-parameters.root"
 
 alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
+
+# Alignment samples for the orbit shifts at the reference
+# (empty -> no alignment sample contribution)
+pathsToAlignmentSamples = []
+
+alignmentSamplesLong = []
+alignmentSamplesShort = []
+for pathToAlignmentSample in pathsToAlignmentSamples:
+    alignmentSampleReaderCfg = E320RootBeamlineAlignmentReader.Config()
+    alignmentSampleReaderCfg.treeName = alignmentReaderCfg.treeName
+    alignmentSampleReaderCfg.filePath = pathToAlignmentSample
+
+    alignmentSampleReader = E320RootBeamlineAlignmentReader(alignmentSampleReaderCfg)
+    alignmentSamplesLong.append(alignmentSampleReader.getAlignmentParsLong())
+    alignmentSamplesShort.append(alignmentSampleReader.getAlignmentParsShort())
 alignmentParsLong = alignmentReader.getAlignmentParsLong()
 alignmentParsShort = alignmentReader.getAlignmentParsShort()
 
@@ -100,6 +115,7 @@ beamlineX.setBeamCov(
         FacetConstraints.referenceBeamDivergenceShort, 
         FacetConstraints.referenceBeamCorrelationShort)
 beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
+beamlineX.setAlignmentSamples(alignmentSamplesShort)
 
 # ------------------------------------------------------
 beamlineY = E320BeamlineFDF()
@@ -117,6 +133,7 @@ beamlineY.setBeamCov(
         FacetConstraints.referenceBeamDivergenceLong, 
         FacetConstraints.referenceBeamCorrelationLong)
 beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
+beamlineY.setAlignmentSamples(alignmentSamplesLong)
 
 # ------------------------------------------------------
 beamWriterCfg = RootOrbitFitWriter.Config()

@@ -80,6 +80,11 @@ class E320Beamline(ABC):
         # (zero -> no alignment contribution to the orbit covariance)
         self.alignmentCov = np.zeros(shape=(10, 10), dtype=float)
 
+        # Alignment parameters of the alignment samples 
+        # in the getAlignmentPars order [m, rad]
+        # (empty -> no alignment sample contribution)
+        self.alignmentSamples = []
+
         # Free parameters of the alignment fit
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
         self.bpmFree = np.zeros(shape=(4), dtype=bool)
@@ -229,6 +234,18 @@ class E320Beamline(ABC):
         for i in range(10):
             for j in range(10):
                 self.alignmentCov[i,j] = cov[i,j]
+
+    def setAlignmentSamples(self, samples: list[npt.NDArray[np.float64]]) -> None:
+        """
+        Set the alignment parameters of the alignment samples, 
+        their orbit shifts with respect to the current alignment 
+        at the reference are computed by optimizeBeam
+
+        samples: list of alignment parameters in the getAlignmentPars order [m, rad]
+        """
+        self.alignmentSamples = []
+        for sample in samples:
+            self.alignmentSamples.append(np.array(sample, dtype=float))
 
     def setBpmFree(self, free: npt.NDArray[np.bool_]) -> None:
         """
@@ -519,12 +536,29 @@ class E320Beamline(ABC):
         cov = self.toReference.ABCD @ beamCov @ self.toReference.ABCD.T
         states = self.getBeamStates(bpmMeas, bpmErrs, beamVec, beamCov, grads)
 
+        # Response of the orbit at the reference to the alignment parameters
+        nSamples = len(self.alignmentSamples)
+        if (np.any(self.alignmentCov != 0) or nSamples > 0):
+            orbitDer = self.getOrbitResponseMatrix(bpmErrs, grads)
+
         # Orbit covariance at the reference due to the alignment uncertainty, 
         # common to all events
         alignmentOrbitCov = np.zeros(shape=(2, 2), dtype=float)
         if (np.any(self.alignmentCov != 0)):
-            orbitDer = self.getOrbitResponseMatrix(bpmErrs, grads)
             alignmentOrbitCov = orbitDer @ self.alignmentCov @ orbitDer.T
+
+        # Orbit shifts at the reference for the alignment samples 
+        # with respect to the current alignment, common to all events, 
+        # and their covariance diag(half-range^2)
+        alignmentSampleShifts = np.zeros(shape=(nSamples, 2), dtype=float)
+        alignmentSampleCov = np.zeros(shape=(2, 2), dtype=float)
+        if (nSamples > 0):
+            pars = self.getAlignmentPars()
+            for k in range(nSamples):
+                alignmentSampleShifts[k] = orbitDer @ (self.alignmentSamples[k] - pars)
+            halfRange = 0.5 * (np.max(alignmentSampleShifts, axis=0) - np.min(alignmentSampleShifts, axis=0))
+            alignmentSampleCov[0,0] = halfRange[0]**2
+            alignmentSampleCov[1,1] = halfRange[1]**2
 
         return BeamOrbitFitResult(
                 states, 
@@ -534,7 +568,9 @@ class E320Beamline(ABC):
                 self.energy, 
                 chi2, 
                 np.array(self.beamCov), 
-                alignmentOrbitCov)
+                alignmentOrbitCov, 
+                alignmentSampleShifts, 
+                alignmentSampleCov)
 
     def getBeamlineChi2Block(self, bpmShots, bpmErrs, quadGrads):
         """
