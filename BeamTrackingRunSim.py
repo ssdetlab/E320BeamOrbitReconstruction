@@ -59,7 +59,8 @@ alignmentReaderCfg.treeName = "alignment-parameters"
 alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/sim/alignment_shifts_quad_rots/alignment_rots/alignment-parameters.root"
 
 alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
-bpmCenterPrimary, bpmCenterLong, bpmCenterShort, quadCenterPrimary, quadCenterLong, quadCenterShort = alignmentReader.getBeamlineAlignment()
+alignmentParsLong = alignmentReader.getAlignmentParsLong()
+alignmentParsShort = alignmentReader.getAlignmentParsShort()
 
 # ------------------------------------------------------
 
@@ -67,16 +68,16 @@ alignmentProvider = False
 if (alignmentProvider):
     beamEnergy = 10 * 1e9 * GeneralConstraints.e
     
-    quadShiftsLong = quadCenterLong
-    quadShiftsShort = quadCenterShort
+    quadShiftsLong = alignmentParsLong[4:7]
+    quadShiftsShort = alignmentParsShort[4:7]
     
     quadLengths = np.array([
         2 * SimConstraints.quad1HalfPrimary,
         2 * SimConstraints.quad2HalfPrimary,
         2 * SimConstraints.quad3HalfPrimary], dtype=np.float64)
     
-    bpmShiftsLong = bpmCenterLong
-    bpmShiftsShort = bpmCenterShort
+    bpmShiftsLong = alignmentParsLong[0:4]
+    bpmShiftsShort = alignmentParsShort[0:4]
     
     quadTiltsShort = np.array([
         SimConstraints.quad1Pitch,
