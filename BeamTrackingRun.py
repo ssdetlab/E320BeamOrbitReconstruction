@@ -47,22 +47,25 @@ def processRun(
     alignmentReaderCfg.filePath = pathToAlignmentData
     
     alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
-    (bpmCenterPrimary, bpmCenterLong, bpmCenterShort, 
-     quadCenterPrimary, quadCenterLong, quadCenterShort) = alignmentReader.getBeamlineAlignment()
+    alignmentParsLong = alignmentReader.getAlignmentParsLong()
+    alignmentParsShort = alignmentReader.getAlignmentParsShort()
     
     # ------------------------------------------------------
     beamEnergy = 10 * 1e9 * GeneralConstraints.e
     
-    quadShiftsLong = quadCenterLong
-    quadShiftsShort = quadCenterShort
+    quadShiftsLong = alignmentParsLong[4:7]
+    quadShiftsShort = alignmentParsShort[4:7]
+
+    quadTiltsLong = alignmentParsLong[7:10]
+    quadTiltsShort = alignmentParsShort[7:10]
     
     quadLengths = np.array([
         2 * FacetConstraints.quad1HalfPrimary,
         2 * FacetConstraints.quad2HalfPrimary,
         2 * FacetConstraints.quad3HalfPrimary], dtype=np.float64)
     
-    bpmShiftsLong = bpmCenterLong
-    bpmShiftsShort = bpmCenterShort
+    bpmShiftsLong = alignmentParsLong[0:4]
+    bpmShiftsShort = alignmentParsShort[0:4]
     
     freeToQuadLenght = np.array([
         (FacetConstraints.quad1CenterPrimary - FacetConstraints.quad1HalfPrimary) - FacetConstraints.bpm0CenterPrimary,
@@ -81,6 +84,8 @@ def processRun(
     print(f"Beam energy: {beamEnergy}")
     print(f"Quad shifts long: {quadShiftsLong}")
     print(f"Quad shifts short: {quadShiftsShort}")
+    print(f"Quad tilts long: {quadTiltsLong}")
+    print(f"Quad tilts short: {quadTiltsShort}")
     print(f"Quad shifts lenghts: {quadLengths}")
     print(f"BPM shifts long: {bpmShiftsLong}")
     print(f"BPM shifts short: {bpmShiftsShort}")
@@ -93,6 +98,7 @@ def processRun(
     
     beamlineX.setBeamEnergy(beamEnergy)
     beamlineX.setQuadShifts(quadShiftsShort)
+    beamlineX.setQuadTilts(quadTiltsShort)
     beamlineX.setQuadLengths(quadLengths)
     beamlineX.setBpmShifts(bpmShiftsShort)
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
@@ -108,6 +114,7 @@ def processRun(
     
     beamlineY.setBeamEnergy(beamEnergy)
     beamlineY.setQuadShifts(quadShiftsLong)
+    beamlineY.setQuadTilts(quadTiltsLong)
     beamlineY.setQuadLengths(quadLengths)
     beamlineY.setBpmShifts(bpmShiftsLong)
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)

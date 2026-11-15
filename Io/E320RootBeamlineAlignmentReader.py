@@ -273,3 +273,53 @@ class E320RootBeamlineAlignmentReader:
                 self.alignmentShortNdf,
                 self.alignmentCov,
                 self.bpmCovs)
+
+    def getAlignmentParsShort(self) -> npt.NDArray[np.float64]:
+        """
+        Get the short (x) direction alignment parameters 
+        in the E320Beamline.getAlignmentPars order
+
+        return: [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3] shifts [m] X 
+            [quad1, quad2, quad3] pitches [rad]
+        """
+        pars = np.zeros(shape=(10), dtype=float)
+        for i in range(4):
+            pars[i] = self.bpmPositions[i][0]
+        for i in range(3):
+            pars[4 + i] = self.quadPositions[i][0]
+            pars[7 + i] = self.quadTilts[i][0]
+        return pars
+
+    def getAlignmentParsLong(self) -> npt.NDArray[np.float64]:
+        """
+        Get the long (y) direction alignment parameters 
+        in the E320Beamline.getAlignmentPars order
+
+        return: [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3] shifts [m] X 
+            [quad1, quad2, quad3] yaws [rad]
+        """
+        pars = np.zeros(shape=(10), dtype=float)
+        for i in range(4):
+            pars[i] = self.bpmPositions[i][1]
+        for i in range(3):
+            pars[4 + i] = self.quadPositions[i][1]
+            pars[7 + i] = self.quadTilts[i][1]
+        return pars
+
+    def getAlignmentCovShort(self) -> npt.NDArray[np.float64]:
+        """
+        Get the short (x) direction alignment fit covariance 
+        in the E320Beamline.getAlignmentPars order
+
+        return: 10x10 covariance [m, rad]
+        """
+        return np.array(self.alignmentCov[0:10, 0:10])
+
+    def getAlignmentCovLong(self) -> npt.NDArray[np.float64]:
+        """
+        Get the long (y) direction alignment fit covariance 
+        in the E320Beamline.getAlignmentPars order
+
+        return: 10x10 covariance [m, rad]
+        """
+        return np.array(self.alignmentCov[10:20, 10:20])
