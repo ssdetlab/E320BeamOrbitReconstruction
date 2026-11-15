@@ -26,6 +26,7 @@ def processRun(
         dataEventKey: str, 
         pathToAlignmentData: str, 
         alignmentTreeName: str, 
+        pathsToAlignmentSamples: list[str], 
         outDirPath: str, 
         outTreeName: str) -> None:
     dataPathList = Path(pathToDataDir).rglob('*.root')
@@ -47,6 +48,18 @@ def processRun(
     alignmentReaderCfg.filePath = pathToAlignmentData
     
     alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
+
+    # Alignment samples for the orbit shifts at the reference
+    alignmentSamplesLong = []
+    alignmentSamplesShort = []
+    for pathToAlignmentSample in pathsToAlignmentSamples:
+        alignmentSampleReaderCfg = E320RootBeamlineAlignmentReader.Config()
+        alignmentSampleReaderCfg.treeName = alignmentTreeName
+        alignmentSampleReaderCfg.filePath = pathToAlignmentSample
+
+        alignmentSampleReader = E320RootBeamlineAlignmentReader(alignmentSampleReaderCfg)
+        alignmentSamplesLong.append(alignmentSampleReader.getAlignmentParsLong())
+        alignmentSamplesShort.append(alignmentSampleReader.getAlignmentParsShort())
     alignmentParsLong = alignmentReader.getAlignmentParsLong()
     alignmentParsShort = alignmentReader.getAlignmentParsShort()
     
@@ -109,6 +122,7 @@ def processRun(
             FacetConstraints.referenceBeamDivergenceShort, 
             FacetConstraints.referenceBeamCorrelationShort)
     beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
+    beamlineX.setAlignmentSamples(alignmentSamplesShort)
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -126,6 +140,7 @@ def processRun(
             FacetConstraints.referenceBeamDivergenceLong, 
             FacetConstraints.referenceBeamCorrelationLong)
     beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
+    beamlineY.setAlignmentSamples(alignmentSamplesLong)
     
     # ------------------------------------------------------
     outDir = Path(outDirPath + "/" + runPrefix)
@@ -196,6 +211,10 @@ if __name__ == "__main__":
     pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
                            "out_data/data/quad_bpm_alignment/sm_no_steering/"
                            "alignment/alignment-parameters.root")
+
+    # Alignment samples for the orbit shifts at the reference
+    # (empty -> no alignment sample contribution)
+    pathsToAlignmentSamples = []
     
     outDirPath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/global_2026_data"
 
@@ -215,5 +234,6 @@ if __name__ == "__main__":
                    dataEventKey = "event", 
                    pathToAlignmentData = pathToAlignmentData, 
                    alignmentTreeName = "alignment-parameters", 
+                   pathsToAlignmentSamples = pathsToAlignmentSamples, 
                    outDirPath = outDirPath, 
                    outTreeName = "fitted-beam")

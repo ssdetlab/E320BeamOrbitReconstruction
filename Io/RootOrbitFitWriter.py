@@ -83,6 +83,12 @@ class RootOrbitFitWriter:
         # (x, x', y, y') covariance at the reference due to the alignment uncertainty
         self.referenceAlignmentCov = ROOT.TMatrixD(4, 4)
 
+        # (x, x', y, y') shifts at the reference for the alignment samples
+        self.referenceAlignmentSampleShifts = ROOT.std.vector("TVectorD")()
+
+        # (x, x', y, y') covariance at the reference from the alignment samples
+        self.referenceAlignmentSampleCov = ROOT.TMatrixD(4, 4)
+
         # Event ID
         self.eventId = c_uint64(0)
 
@@ -135,6 +141,12 @@ class RootOrbitFitWriter:
 
         # (x, x', y, y') covariance at the reference due to the alignment uncertainty
         self.tree.Branch("referenceAlignmentCov", self.referenceAlignmentCov, bufSize, splitLvl)
+
+        # (x, x', y, y') shifts at the reference for the alignment samples
+        self.tree.Branch("referenceAlignmentSampleShifts", self.referenceAlignmentSampleShifts, bufSize, splitLvl)
+
+        # (x, x', y, y') covariance at the reference from the alignment samples
+        self.tree.Branch("referenceAlignmentSampleCov", self.referenceAlignmentSampleCov, bufSize, splitLvl)
 
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
@@ -272,6 +284,19 @@ class RootOrbitFitWriter:
 
         # (x, x', y, y') covariance at the reference due to the alignment uncertainty [mm, rad]
         setCov(self.referenceAlignmentCov, getCovMmRad(fittedOrbit.referenceAlignmentCov))
+
+        # (x, x', y, y') shifts at the reference for the alignment samples [mm, rad]
+        self.referenceAlignmentSampleShifts.clear()
+        for shift in fittedOrbit.referenceAlignmentSampleShifts:
+            sampleShift = ROOT.TVectorD(4)
+            sampleShift[0] = shift[0] * 1e3 # x
+            sampleShift[1] = shift[1]       # x'
+            sampleShift[2] = shift[2] * 1e3 # y
+            sampleShift[3] = shift[3]       # y'
+            self.referenceAlignmentSampleShifts.push_back(sampleShift)
+
+        # (x, x', y, y') covariance at the reference from the alignment samples [mm, rad]
+        setCov(self.referenceAlignmentSampleCov, getCovMmRad(fittedOrbit.referenceAlignmentSampleCov))
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
