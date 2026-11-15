@@ -58,3 +58,20 @@ class SimConstraints:
     quad1Yaw = 2 * 1e-3
     quad2Yaw = -2 * 1e-3
     quad3Yaw = 2 * 1e-3
+
+    # --------------------------------------------------------------
+    # Reference
+
+    # Al foil location [m]
+    alFoilCenterPrimary = 0.0
+
+    # Beam at the reference within one bunch 
+    # (0 -> no contribution to the measurement covariance)
+    # size [m], divergence [rad], size-divergence correlation coefficient
+    referenceBeamSizeLong = 0.0
+    referenceBeamDivergenceLong = 0.0
+    referenceBeamCorrelationLong = 0.0
+
+    referenceBeamSizeShort = 0.0
+    referenceBeamDivergenceShort = 0.0
+    referenceBeamCorrelationShort = 0.0
