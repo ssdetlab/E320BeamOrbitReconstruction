@@ -88,6 +88,10 @@ class BeamOrbit:
         # Beam covariance at the reference within one bunch (x, x', y, y') [m, rad]
         self.referenceBeamCov = getPlanesCov(orbitFitX.beamCov, orbitFitY.beamCov)
 
+        # Covariance at the reference due to the alignment uncertainty (x, x', y, y') [m, rad]
+        # (common to all events, not part of the measurement covariance)
+        self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
+
         # Measurement covariance at the reference (x, x', y, y') [m, rad]
         # (sum of the per-event components)
         self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov

@@ -108,6 +108,7 @@ def processRun(
             FacetConstraints.referenceBeamSizeShort, 
             FacetConstraints.referenceBeamDivergenceShort, 
             FacetConstraints.referenceBeamCorrelationShort)
+    beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -124,6 +125,7 @@ def processRun(
             FacetConstraints.referenceBeamSizeLong, 
             FacetConstraints.referenceBeamDivergenceLong, 
             FacetConstraints.referenceBeamCorrelationLong)
+    beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
     
     # ------------------------------------------------------
     outDir = Path(outDirPath + "/" + runPrefix)
