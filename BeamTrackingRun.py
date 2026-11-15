@@ -86,6 +86,7 @@ def processRun(
     print(f"BPM shifts short: {bpmShiftsShort}")
     print(f"Free to quad lengths: {freeToQuadLenght}")
     print(f"Quad to BPM lengths: {quadToBPMLenght}")
+    print(f"Reference distance: {referenceDistance}")
     
     # ------------------------------------------------------
     beamlineX = E320BeamlineDFD()
