@@ -365,6 +365,21 @@ class E320Beamline(ABC):
             self.setAlignmentPars(currentPars)
         return alignDer
 
+    def getBpmWeights(self, bpmErrs: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """
+        BPM weights of the beam vector fit
+
+        bpmErrs: bpm measurement errors [m]
+
+        return: 4x4 diagonal weight matrix W [1/m^2]
+        """
+        weights = np.zeros(shape=(4, 4), dtype=float)
+        weights[0,0] = 1.0 / bpmErrs[0]**2
+        weights[1,1] = 1.0 / bpmErrs[1]**2
+        weights[2,2] = 1.0 / bpmErrs[2]**2
+        weights[3,3] = 1.0 / bpmErrs[3]**2
+        return weights
+
     def fitBeamNewtonStep(self, bpmMeas, bpmErrs, grads):
         """
         Fit of the beam vector (x, x') at BPM0 for a single shot
@@ -389,11 +404,7 @@ class E320Beamline(ABC):
         beamDer = self.getBeamResponseMatrix(base, grads)
 
         # BPM weights
-        weights = np.zeros(shape=(4, 4), dtype=float)
-        weights[0,0] = 1.0 / bpmErrs[0]**2
-        weights[1,1] = 1.0 / bpmErrs[1]**2
-        weights[2,2] = 1.0 / bpmErrs[2]**2
-        weights[3,3] = 1.0 / bpmErrs[3]**2
+        weights = self.getBpmWeights(bpmErrs)
 
         # Newton step
         res = np.array(bpmMeas) - base

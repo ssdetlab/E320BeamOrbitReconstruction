@@ -124,15 +124,15 @@ for eventId,row in enumerate(dataReader):
     steerXcor = np.array([0], dtype=float)
 
     bpmErrsX = np.array(
-            [0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.05 * 1e-3])
+            [FacetConstraints.bpm0ResolutionShort, 
+             FacetConstraints.bpm1ResolutionShort, 
+             FacetConstraints.bpm2ResolutionShort, 
+             FacetConstraints.bpm3ResolutionShort])
     bpmErrsY = np.array(
-            [0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.05 * 1e-3, 
-             0.05 * 1e-3])
+            [FacetConstraints.bpm0ResolutionLong, 
+             FacetConstraints.bpm1ResolutionLong, 
+             FacetConstraints.bpm2ResolutionLong, 
+             FacetConstraints.bpm3ResolutionLong])
 
     fitResX = beamlineX.optimizeBeam(bpmMeasX, bpmErrsX, magnets)
     fitResY = beamlineY.optimizeBeam(bpmMeasY, bpmErrsY, magnets)
