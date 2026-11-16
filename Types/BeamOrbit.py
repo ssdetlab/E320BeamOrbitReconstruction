@@ -12,6 +12,8 @@ class BeamOrbit:
             self, 
             orbitFitX: BeamOrbitFitResult,
             orbitFitY: BeamOrbitFitResult,
+            orbitFitBootstrapX: BeamOrbitFitResult,
+            orbitFitBootstrapY: BeamOrbitFitResult,
             eventId) -> None:
         def getPlanesCov(
                 covX: npt.NDArray[np.float64], 
@@ -31,6 +33,38 @@ class BeamOrbit:
                     cov[i, j] = covX[i, j]
                     cov[2 + i, 2 + j] = covY[i, j]
             return cov
+
+        def getPulls(
+                residuals: npt.NDArray[np.float64], 
+                cov: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Pulls of the residuals with the diagonal of the covariance
+
+            residuals: residuals
+            cov: covariance of the residuals
+
+            return: pulls, 0 for the components with zero variance
+            """
+            sigmas = np.sqrt(np.linalg.diagonal(cov))
+            pulls = np.zeros(shape=(len(residuals)), dtype=np.float64)
+            for i in range(len(residuals)):
+                if (sigmas[i] > 0):
+                    pulls[i] = residuals[i] / sigmas[i]
+            return pulls
+
+        def getChi2(
+                residuals: npt.NDArray[np.float64], 
+                cov: npt.NDArray[np.float64]) -> float:
+            """
+            chi2 of the residuals with the covariance, 
+            the pseudo-inverse is used for the singular covariances (ndf = rank)
+
+            residuals: residuals
+            cov: covariance of the residuals
+
+            return: chi2
+            """
+            return float(residuals @ np.linalg.pinv(cov) @ residuals)
 
         nStates = len(orbitFitX.beamStates)
 
@@ -107,6 +141,48 @@ class BeamOrbit:
         # Measurement covariance at the reference (x, x', y, y') [m, rad]
         # (sum of the per-event components)
         self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov
+
+        # --------------------------------------------------------------
+        # Validation at the reference (x, x', y, y') [m, rad] 
+        # from the reconstructed quantities only
+
+        # Estimated (x, x', y, y') at the reference [m, rad]
+        referenceVecEst = np.array([
+            orbitFitX.referenceVec[0], 
+            orbitFitX.referenceVec[1], 
+            orbitFitY.referenceVec[0], 
+            orbitFitY.referenceVec[1]], dtype=np.float64)
+
+        # Fit, data: chi2 of the BPM residuals of both planes, ndf 4
+        self.referenceFitChi2Est = orbitFitX.chi2 + orbitFitY.chi2
+
+        # Fit, data: residuals of the estimated orbit with respect to the refit 
+        # of the measurements generated from the estimated orbit with the BPM 
+        # resolutions (parametric bootstrap), covariance referenceCov, ndf 4
+        referenceVecBootstrap = np.array([
+            orbitFitBootstrapX.referenceVec[0], 
+            orbitFitBootstrapX.referenceVec[1], 
+            orbitFitBootstrapY.referenceVec[0], 
+            orbitFitBootstrapY.referenceVec[1]], dtype=np.float64)
+        fitResidualsBootstrap = referenceVecEst - referenceVecBootstrap
+        self.referenceFitBootstrapPullsEst = getPulls(fitResidualsBootstrap, self.referenceCov)
+        self.referenceFitBootstrapChi2Est = getChi2(fitResidualsBootstrap, self.referenceCov)
+
+        # Alignment, data: alignment sample shifts, covariance referenceAlignmentCov
+        self.referenceAlignmentSamplePullsEst = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        self.referenceAlignmentSampleChi2Est = np.zeros(shape=(nSamples), dtype=np.float64)
+        for k in range(nSamples):
+            self.referenceAlignmentSamplePullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
+            self.referenceAlignmentSampleChi2Est[k] = getChi2(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
+
+        # Alignment samples, data: alignment sample shifts, covariance diag(half-range^2) 
+        # of the other samples (leave-one-out), defined for at least 3 samples
+        self.referenceAlignmentSampleCovPullsEst = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        if (nSamples >= 3):
+            for k in range(nSamples):
+                otherShifts = np.delete(self.referenceAlignmentSampleShifts, k, axis=0)
+                halfRange = 0.5 * (np.max(otherShifts, axis=0) - np.min(otherShifts, axis=0))
+                self.referenceAlignmentSampleCovPullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], np.diag(halfRange**2))
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst

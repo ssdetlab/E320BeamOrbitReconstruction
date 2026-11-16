@@ -172,9 +172,21 @@ for eventId,row in enumerate(dataReader):
     fitResX = beamlineX.optimizeBeam(bpmMeasX, bpmErrsX, magnets)
     fitResY = beamlineY.optimizeBeam(bpmMeasY, bpmErrsY, magnets)
 
+    # Refit of the measurements generated from the estimated orbit 
+    # with the BPM resolutions (parametric bootstrap)
+    bpmMeasBootstrapX = np.array(
+            [fitResX.beamStates[i].bpmPrediction + bpmErrsX[i] * np.random.normal() for i in range(4)])
+    bpmMeasBootstrapY = np.array(
+            [fitResY.beamStates[i].bpmPrediction + bpmErrsY[i] * np.random.normal() for i in range(4)])
+
+    fitResBootstrapX = beamlineX.optimizeBeam(bpmMeasBootstrapX, bpmErrsX, magnets)
+    fitResBootstrapY = beamlineY.optimizeBeam(bpmMeasBootstrapY, bpmErrsY, magnets)
+
     orbit = BeamOrbit(
             fitResX, 
             fitResY, 
+            fitResBootstrapX, 
+            fitResBootstrapY, 
             eventId)
 
     magnets = np.array([magnets[0], magnets[1], magnets[2], steerXcor[0]], dtype=float)
