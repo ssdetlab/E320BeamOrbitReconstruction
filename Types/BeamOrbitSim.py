@@ -12,6 +12,8 @@ class BeamOrbitSim:
             self, 
             orbitFitX: BeamOrbitFitResult,
             orbitFitY: BeamOrbitFitResult,
+            orbitFitBootstrapX: BeamOrbitFitResult,
+            orbitFitBootstrapY: BeamOrbitFitResult,
             beamHitsTruth,
             referencePositionTruth, 
             referenceMomentumTruth, 
@@ -212,6 +214,18 @@ class BeamOrbitSim:
 
         # Fit, data: chi2 of the BPM residuals of both planes, ndf 4
         self.referenceFitChi2Est = orbitFitX.chi2 + orbitFitY.chi2
+
+        # Fit, data: residuals of the estimated orbit with respect to the refit 
+        # of the measurements generated from the estimated orbit with the BPM 
+        # resolutions (parametric bootstrap), covariance referenceCov, ndf 4
+        referenceVecBootstrap = np.array([
+            orbitFitBootstrapX.referenceVec[0], 
+            orbitFitBootstrapX.referenceVec[1], 
+            orbitFitBootstrapY.referenceVec[0], 
+            orbitFitBootstrapY.referenceVec[1]], dtype=np.float64)
+        fitResidualsBootstrap = referenceVecEst - referenceVecBootstrap
+        self.referenceFitBootstrapPullsEst = getPulls(fitResidualsBootstrap, self.referenceCov)
+        self.referenceFitBootstrapChi2Est = getChi2(fitResidualsBootstrap, self.referenceCov)
 
         # Alignment: true alignment shift, covariance referenceAlignmentCov
         self.referenceAlignmentPullsTruth = getPulls(self.referenceAlignmentShiftTruth, self.referenceAlignmentCov)
