@@ -122,6 +122,8 @@ class RootOrbitSimFitWriter:
         self.referenceFitPullsTruth = ROOT.TVectorD(4)
         self.referenceFitChi2Truth = c_double(0)
         self.referenceFitChi2Est = c_double(0)
+        self.referenceFitBootstrapPullsEst = ROOT.TVectorD(4)
+        self.referenceFitBootstrapChi2Est = c_double(0)
 
         # (x, x', y, y') alignment pulls at the reference and their chi2
         self.referenceAlignmentPullsTruth = ROOT.TVectorD(4)
@@ -226,6 +228,8 @@ class RootOrbitSimFitWriter:
         self.tree.Branch("referenceFitPullsTruth", self.referenceFitPullsTruth, bufSize, splitLvl)
         self.tree.Branch("referenceFitChi2Truth", self.referenceFitChi2Truth, "referenceFitChi2Truth/D")
         self.tree.Branch("referenceFitChi2Est", self.referenceFitChi2Est, "referenceFitChi2Est/D")
+        self.tree.Branch("referenceFitBootstrapPullsEst", self.referenceFitBootstrapPullsEst, bufSize, splitLvl)
+        self.tree.Branch("referenceFitBootstrapChi2Est", self.referenceFitBootstrapChi2Est, "referenceFitBootstrapChi2Est/D")
 
         # (x, x', y, y') alignment pulls at the reference and their chi2
         self.tree.Branch("referenceAlignmentPullsTruth", self.referenceAlignmentPullsTruth, bufSize, splitLvl)
@@ -367,6 +371,8 @@ class RootOrbitSimFitWriter:
         setPulls(self.referenceFitPullsTruth, fittedOrbit.referenceFitPullsTruth)
         self.referenceFitChi2Truth.value = fittedOrbit.referenceFitChi2Truth
         self.referenceFitChi2Est.value = fittedOrbit.referenceFitChi2Est
+        setPulls(self.referenceFitBootstrapPullsEst, fittedOrbit.referenceFitBootstrapPullsEst)
+        self.referenceFitBootstrapChi2Est.value = fittedOrbit.referenceFitBootstrapChi2Est
 
         # (x, x', y, y') alignment pulls at the reference and their chi2
         setPulls(self.referenceAlignmentPullsTruth, fittedOrbit.referenceAlignmentPullsTruth)
