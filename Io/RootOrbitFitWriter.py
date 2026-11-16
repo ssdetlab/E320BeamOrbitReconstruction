@@ -89,6 +89,18 @@ class RootOrbitFitWriter:
         # (local x, local y, phi, theta) covariance at the reference from the alignment samples
         self.referenceAlignmentSampleCov = ROOT.TMatrixD(4, 4)
 
+        # (local x, local y, phi, theta) fit pulls at the reference and their chi2
+        self.referenceFitChi2Est = c_double(0)
+        self.referenceFitBootstrapPullsEst = ROOT.TVectorD(4)
+        self.referenceFitBootstrapChi2Est = c_double(0)
+
+        # (local x, local y, phi, theta) alignment pulls at the reference and their chi2
+        self.referenceAlignmentSamplePullsEst = ROOT.std.vector("TVectorD")()
+        self.referenceAlignmentSampleChi2Est = ROOT.std.vector("double")()
+
+        # (local x, local y, phi, theta) alignment sample covariance pulls at the reference
+        self.referenceAlignmentSampleCovPullsEst = ROOT.std.vector("TVectorD")()
+
         # Event ID
         self.eventId = c_uint64(0)
 
@@ -147,6 +159,18 @@ class RootOrbitFitWriter:
 
         # (local x, local y, phi, theta) covariance at the reference from the alignment samples
         self.tree.Branch("referenceAlignmentSampleCov", self.referenceAlignmentSampleCov, bufSize, splitLvl)
+
+        # (local x, local y, phi, theta) fit pulls at the reference and their chi2
+        self.tree.Branch("referenceFitChi2Est", self.referenceFitChi2Est, "referenceFitChi2Est/D")
+        self.tree.Branch("referenceFitBootstrapPullsEst", self.referenceFitBootstrapPullsEst, bufSize, splitLvl)
+        self.tree.Branch("referenceFitBootstrapChi2Est", self.referenceFitBootstrapChi2Est, "referenceFitBootstrapChi2Est/D")
+
+        # (local x, local y, phi, theta) alignment pulls at the reference and their chi2
+        self.tree.Branch("referenceAlignmentSamplePullsEst", self.referenceAlignmentSamplePullsEst, bufSize, splitLvl)
+        self.tree.Branch("referenceAlignmentSampleChi2Est", self.referenceAlignmentSampleChi2Est, bufSize, splitLvl)
+
+        # (local x, local y, phi, theta) alignment sample covariance pulls at the reference
+        self.tree.Branch("referenceAlignmentSampleCovPullsEst", self.referenceAlignmentSampleCovPullsEst, bufSize, splitLvl)
 
         # Predicted vertex pull at the reference
         self.tree.Branch("referencePositionPullsEst", self.referencePositionPullsEst, bufSize, splitLvl)
@@ -218,6 +242,16 @@ class RootOrbitFitWriter:
             for i in range(4):
                 for j in range(4):
                     matrix[i][j] = cov[i, j]
+
+        def setPulls(vector: ROOT.TVectorD, pulls: npt.NDArray[np.float64]) -> None:
+            """
+            Set a (local x, local y, phi, theta) TVectorD of pulls
+
+            vector: TVectorD to be set
+            pulls: (x, x', y, y') pulls
+            """
+            for i in range(4):
+                vector[i] = pulls[localIdx[i]]
 
         # --------------------------------------------------------------
         # Clear the observable containers
@@ -317,6 +351,27 @@ class RootOrbitFitWriter:
 
         # (local x, local y, phi, theta) covariance at the reference from the alignment samples [mm, rad]
         setCov(self.referenceAlignmentSampleCov, getCovLocal(fittedOrbit.referenceAlignmentSampleCov))
+
+        # (local x, local y, phi, theta) fit pulls at the reference and their chi2
+        self.referenceFitChi2Est.value = fittedOrbit.referenceFitChi2Est
+        setPulls(self.referenceFitBootstrapPullsEst, fittedOrbit.referenceFitBootstrapPullsEst)
+        self.referenceFitBootstrapChi2Est.value = fittedOrbit.referenceFitBootstrapChi2Est
+
+        # (local x, local y, phi, theta) alignment pulls at the reference and their chi2
+        self.referenceAlignmentSamplePullsEst.clear()
+        self.referenceAlignmentSampleChi2Est.clear()
+        for k in range(len(fittedOrbit.referenceAlignmentSamplePullsEst)):
+            samplePulls = ROOT.TVectorD(4)
+            setPulls(samplePulls, fittedOrbit.referenceAlignmentSamplePullsEst[k])
+            self.referenceAlignmentSamplePullsEst.push_back(samplePulls)
+            self.referenceAlignmentSampleChi2Est.push_back(fittedOrbit.referenceAlignmentSampleChi2Est[k])
+
+        # (local x, local y, phi, theta) alignment sample covariance pulls at the reference
+        self.referenceAlignmentSampleCovPullsEst.clear()
+        for samplePullsEst in fittedOrbit.referenceAlignmentSampleCovPullsEst:
+            samplePulls = ROOT.TVectorD(4)
+            setPulls(samplePulls, samplePullsEst)
+            self.referenceAlignmentSampleCovPullsEst.push_back(samplePulls)
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
