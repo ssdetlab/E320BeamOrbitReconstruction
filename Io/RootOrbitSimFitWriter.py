@@ -488,12 +488,13 @@ class RootOrbitSimFitWriter:
                     -(bpmHitLocal.Y() + self.cfg.bpmPositions[idx][0] * 1e3))
             self.bpmHitsGlobal.push_back(bpmHitGlobal)
 
-            # Covariances of the beam hits
+            # Covariances of the beam hits 
+            # in the local frame of the hits, (local x, local y) = (y, x)
             beamHitCovData = ROOT.TArrayD(4)
             beamHitCov = ROOT.TMatrixD(2, 2)
             for i in range(2):
                 for j in range(2):
-                    beamHitCovData[i * 2 + j] = fittedOrbit.bpmCovs[idx][i, j] * 1e6
+                    beamHitCovData[i * 2 + j] = fittedOrbit.bpmCovs[idx][1 - i, 1 - j] * 1e6
             beamHitCov.Use(2, 2, beamHitCovData.GetArray())
             self.beamHitCovs.push_back(beamHitCov)
 
