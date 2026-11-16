@@ -16,6 +16,8 @@ class BeamOrbitSim:
             referencePositionTruth, 
             referenceMomentumTruth, 
             energyTruth,
+            alignmentShiftTruthX: npt.NDArray[np.float64],
+            alignmentShiftTruthY: npt.NDArray[np.float64],
             eventId) -> None:
         def getPlanesCov(
                 covX: npt.NDArray[np.float64], 
@@ -35,6 +37,38 @@ class BeamOrbitSim:
                     cov[i, j] = covX[i, j]
                     cov[2 + i, 2 + j] = covY[i, j]
             return cov
+
+        def getPulls(
+                residuals: npt.NDArray[np.float64], 
+                cov: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+            """
+            Pulls of the residuals with the diagonal of the covariance
+
+            residuals: residuals
+            cov: covariance of the residuals
+
+            return: pulls, 0 for the components with zero variance
+            """
+            sigmas = np.sqrt(np.linalg.diagonal(cov))
+            pulls = np.zeros(shape=(len(residuals)), dtype=np.float64)
+            for i in range(len(residuals)):
+                if (sigmas[i] > 0):
+                    pulls[i] = residuals[i] / sigmas[i]
+            return pulls
+
+        def getChi2(
+                residuals: npt.NDArray[np.float64], 
+                cov: npt.NDArray[np.float64]) -> float:
+            """
+            chi2 of the residuals with the covariance, 
+            the pseudo-inverse is used for the singular covariances (ndf = rank)
+
+            residuals: residuals
+            cov: covariance of the residuals
+
+            return: chi2
+            """
+            return float(residuals @ np.linalg.pinv(cov) @ residuals)
 
         nStates = len(orbitFitX.beamStates)
 
@@ -143,3 +177,68 @@ class BeamOrbitSim:
 
         # Get true energy
         self.energyTruth = energyTruth
+
+        # --------------------------------------------------------------
+        # Validation at the reference (x, x', y, y') [m, rad], 
+        # the residuals are truth - estimate. 
+        # The truth versions use the true orbit and the true alignment, 
+        # the data versions (Est) use only the reconstructed quantities.
+
+        # True (x, x', y, y') at the reference [m, rad]
+        self.referenceVecTruth = np.array([
+            referencePositionTruth[0], 
+            np.arctan(referenceMomentumTruth[0] / referenceMomentumTruth[2]), 
+            referencePositionTruth[1], 
+            np.arctan(referenceMomentumTruth[1] / referenceMomentumTruth[2])], dtype=np.float64)
+
+        # Estimated (x, x', y, y') at the reference [m, rad]
+        referenceVecEst = np.array([
+            orbitFitX.referenceVec[0], 
+            orbitFitX.referenceVec[1], 
+            orbitFitY.referenceVec[0], 
+            orbitFitY.referenceVec[1]], dtype=np.float64)
+
+        # Orbit shift at the reference from the estimated to the true alignment, 
+        # S (alignmentTruth - alignment) [m, rad]
+        self.referenceAlignmentShiftTruth = np.zeros(shape=(4), dtype=np.float64)
+        self.referenceAlignmentShiftTruth[0:2] = alignmentShiftTruthX
+        self.referenceAlignmentShiftTruth[2:4] = alignmentShiftTruthY
+
+        # Fit: residuals with respect to the true orbit with the 
+        # alignment shift removed, covariance referenceCov, ndf 4
+        fitResidualsTruth = self.referenceVecTruth - referenceVecEst - self.referenceAlignmentShiftTruth
+        self.referenceFitPullsTruth = getPulls(fitResidualsTruth, self.referenceCov)
+        self.referenceFitChi2Truth = getChi2(fitResidualsTruth, self.referenceCov)
+
+        # Fit, data: chi2 of the BPM residuals of both planes, ndf 4
+        self.referenceFitChi2Est = orbitFitX.chi2 + orbitFitY.chi2
+
+        # Alignment: true alignment shift, covariance referenceAlignmentCov
+        self.referenceAlignmentPullsTruth = getPulls(self.referenceAlignmentShiftTruth, self.referenceAlignmentCov)
+        self.referenceAlignmentChi2Truth = getChi2(self.referenceAlignmentShiftTruth, self.referenceAlignmentCov)
+
+        # Alignment, data: alignment sample shifts, covariance referenceAlignmentCov
+        nSamples = len(self.referenceAlignmentSampleShifts)
+        self.referenceAlignmentSamplePullsEst = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        self.referenceAlignmentSampleChi2Est = np.zeros(shape=(nSamples), dtype=np.float64)
+        for k in range(nSamples):
+            self.referenceAlignmentSamplePullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
+            self.referenceAlignmentSampleChi2Est[k] = getChi2(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
+
+        # Alignment samples: true alignment shift, covariance referenceAlignmentSampleCov
+        self.referenceAlignmentSampleCovPullsTruth = getPulls(self.referenceAlignmentShiftTruth, self.referenceAlignmentSampleCov)
+
+        # Alignment samples, data: alignment sample shifts, covariance diag(half-range^2) 
+        # of the other samples (leave-one-out), defined for at least 3 samples
+        self.referenceAlignmentSampleCovPullsEst = np.zeros(shape=(nSamples, 4), dtype=np.float64)
+        if (nSamples >= 3):
+            for k in range(nSamples):
+                otherShifts = np.delete(self.referenceAlignmentSampleShifts, k, axis=0)
+                halfRange = 0.5 * (np.max(otherShifts, axis=0) - np.min(otherShifts, axis=0))
+                self.referenceAlignmentSampleCovPullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], np.diag(halfRange**2))
+
+        # Total: residuals with respect to the true orbit, 
+        # covariance referenceCov + referenceAlignmentCov, ndf 4
+        totalResidualsTruth = self.referenceVecTruth - referenceVecEst
+        self.referenceTotalPullsTruth = getPulls(totalResidualsTruth, self.referenceCov + self.referenceAlignmentCov)
+        self.referenceTotalChi2Truth = getChi2(totalResidualsTruth, self.referenceCov + self.referenceAlignmentCov)

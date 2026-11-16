@@ -82,6 +82,30 @@ def processRun(
         alignmentSamplesShort.append(alignmentSampleReader.getAlignmentParsShort())
     alignmentParsLong = alignmentReader.getAlignmentParsLong()
     alignmentParsShort = alignmentReader.getAlignmentParsShort()
+
+    # True alignment [bpm0, bpm1, bpm2, bpm3, quad1, quad2, quad3 shifts, quad1, quad2, quad3 tilts] [m, rad]
+    alignmentParsTruthLong = np.array([
+        SimConstraints.bpm0CenterLong,
+        SimConstraints.bpm1CenterLong,
+        SimConstraints.bpm2CenterLong,
+        SimConstraints.bpm3CenterLong,
+        SimConstraints.quad1CenterLong,
+        SimConstraints.quad2CenterLong,
+        SimConstraints.quad3CenterLong,
+        SimConstraints.quad1Yaw,
+        SimConstraints.quad2Yaw,
+        SimConstraints.quad3Yaw], dtype=np.float64)
+    alignmentParsTruthShort = np.array([
+        SimConstraints.bpm0CenterShort,
+        SimConstraints.bpm1CenterShort,
+        SimConstraints.bpm2CenterShort,
+        SimConstraints.bpm3CenterShort,
+        SimConstraints.quad1CenterShort,
+        SimConstraints.quad2CenterShort,
+        SimConstraints.quad3CenterShort,
+        SimConstraints.quad1Pitch,
+        SimConstraints.quad2Pitch,
+        SimConstraints.quad3Pitch], dtype=np.float64)
     
     # ------------------------------------------------------
     beamEnergy = 10 * 1e9 * GeneralConstraints.e
@@ -239,6 +263,10 @@ def processRun(
         referencePositionTruth = np.array([vecTruthX[0], vecTruthY[0], beamlineX.bpm0CenterPrimary + beamlineX.referenceDist])
         referenceMomentumTruth = clusters[0].originMomentum
     
+        # Orbit shift at the reference from the estimated to the true alignment
+        alignmentShiftTruthX = beamlineX.getOrbitResponseMatrix(bpmErrsX, magnets) @ (alignmentParsTruthShort - beamlineX.getAlignmentPars())
+        alignmentShiftTruthY = beamlineY.getOrbitResponseMatrix(bpmErrsY, magnets) @ (alignmentParsTruthLong - beamlineY.getAlignmentPars())
+    
         orbit = BeamOrbitSim(
                 fitResX, 
                 fitResY, 
@@ -246,6 +274,8 @@ def processRun(
                 referencePositionTruth, 
                 referenceMomentumTruth, 
                 np.linalg.norm(clusters[0].originMomentum), 
+                alignmentShiftTruthX, 
+                alignmentShiftTruthY, 
                 eventId)
     
         beamWriter.write(orbit, magnets)

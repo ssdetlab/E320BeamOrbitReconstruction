@@ -115,6 +115,28 @@ class RootOrbitSimFitWriter:
         # True vertex at the reference
         self.referencePositionTruth = ROOT.TVector3()
 
+        # (x, x', y, y') orbit shift at the reference from the estimated to the true alignment
+        self.referenceAlignmentShiftTruth = ROOT.TVectorD(4)
+
+        # (x, x', y, y') fit pulls at the reference and their chi2
+        self.referenceFitPullsTruth = ROOT.TVectorD(4)
+        self.referenceFitChi2Truth = c_double(0)
+        self.referenceFitChi2Est = c_double(0)
+
+        # (x, x', y, y') alignment pulls at the reference and their chi2
+        self.referenceAlignmentPullsTruth = ROOT.TVectorD(4)
+        self.referenceAlignmentChi2Truth = c_double(0)
+        self.referenceAlignmentSamplePullsEst = ROOT.std.vector("TVectorD")()
+        self.referenceAlignmentSampleChi2Est = ROOT.std.vector("double")()
+
+        # (x, x', y, y') alignment sample covariance pulls at the reference
+        self.referenceAlignmentSampleCovPullsTruth = ROOT.TVectorD(4)
+        self.referenceAlignmentSampleCovPullsEst = ROOT.std.vector("TVectorD")()
+
+        # (x, x', y, y') total pulls at the reference and their chi2
+        self.referenceTotalPullsTruth = ROOT.TVectorD(4)
+        self.referenceTotalChi2Truth = c_double(0)
+
         # -------------------------------------------------------------
         # Branches
 
@@ -197,6 +219,28 @@ class RootOrbitSimFitWriter:
         # True vertex at the reference
         self.tree.Branch("referencePositionTruth", self.referencePositionTruth, bufSize, splitLvl)
 
+        # (x, x', y, y') orbit shift at the reference from the estimated to the true alignment
+        self.tree.Branch("referenceAlignmentShiftTruth", self.referenceAlignmentShiftTruth, bufSize, splitLvl)
+
+        # (x, x', y, y') fit pulls at the reference and their chi2
+        self.tree.Branch("referenceFitPullsTruth", self.referenceFitPullsTruth, bufSize, splitLvl)
+        self.tree.Branch("referenceFitChi2Truth", self.referenceFitChi2Truth, "referenceFitChi2Truth/D")
+        self.tree.Branch("referenceFitChi2Est", self.referenceFitChi2Est, "referenceFitChi2Est/D")
+
+        # (x, x', y, y') alignment pulls at the reference and their chi2
+        self.tree.Branch("referenceAlignmentPullsTruth", self.referenceAlignmentPullsTruth, bufSize, splitLvl)
+        self.tree.Branch("referenceAlignmentChi2Truth", self.referenceAlignmentChi2Truth, "referenceAlignmentChi2Truth/D")
+        self.tree.Branch("referenceAlignmentSamplePullsEst", self.referenceAlignmentSamplePullsEst, bufSize, splitLvl)
+        self.tree.Branch("referenceAlignmentSampleChi2Est", self.referenceAlignmentSampleChi2Est, bufSize, splitLvl)
+
+        # (x, x', y, y') alignment sample covariance pulls at the reference
+        self.tree.Branch("referenceAlignmentSampleCovPullsTruth", self.referenceAlignmentSampleCovPullsTruth, bufSize, splitLvl)
+        self.tree.Branch("referenceAlignmentSampleCovPullsEst", self.referenceAlignmentSampleCovPullsEst, bufSize, splitLvl)
+
+        # (x, x', y, y') total pulls at the reference and their chi2
+        self.tree.Branch("referenceTotalPullsTruth", self.referenceTotalPullsTruth, bufSize, splitLvl)
+        self.tree.Branch("referenceTotalChi2Truth", self.referenceTotalChi2Truth, "referenceTotalChi2Truth/D")
+
     def __del__(self):
         self.file.Write()
         self.file.Close()
@@ -231,6 +275,16 @@ class RootOrbitSimFitWriter:
             for i in range(4):
                 for j in range(4):
                     matrix[i][j] = cov[i, j]
+
+        def setPulls(vector: ROOT.TVectorD, pulls: npt.NDArray[np.float64]) -> None:
+            """
+            Set a (x, x', y, y') TVectorD of pulls
+
+            vector: TVectorD to be set
+            pulls: (x, x', y, y') pulls
+            """
+            for i in range(4):
+                vector[i] = pulls[i]
 
         # --------------------------------------------------------------
         # Clear the truth containers
@@ -301,6 +355,43 @@ class RootOrbitSimFitWriter:
                 referencePositionTruth[2],
                 referencePositionTruth[1],
                 -referencePositionTruth[0])
+
+        # (x, x', y, y') orbit shift at the reference from the estimated to the true alignment [mm, rad]
+        alignmentShiftTruth = fittedOrbit.referenceAlignmentShiftTruth
+        self.referenceAlignmentShiftTruth[0] = alignmentShiftTruth[0] * 1e3 # x
+        self.referenceAlignmentShiftTruth[1] = alignmentShiftTruth[1]       # x'
+        self.referenceAlignmentShiftTruth[2] = alignmentShiftTruth[2] * 1e3 # y
+        self.referenceAlignmentShiftTruth[3] = alignmentShiftTruth[3]       # y'
+
+        # (x, x', y, y') fit pulls at the reference and their chi2
+        setPulls(self.referenceFitPullsTruth, fittedOrbit.referenceFitPullsTruth)
+        self.referenceFitChi2Truth.value = fittedOrbit.referenceFitChi2Truth
+        self.referenceFitChi2Est.value = fittedOrbit.referenceFitChi2Est
+
+        # (x, x', y, y') alignment pulls at the reference and their chi2
+        setPulls(self.referenceAlignmentPullsTruth, fittedOrbit.referenceAlignmentPullsTruth)
+        self.referenceAlignmentChi2Truth.value = fittedOrbit.referenceAlignmentChi2Truth
+
+        self.referenceAlignmentSamplePullsEst.clear()
+        self.referenceAlignmentSampleChi2Est.clear()
+        for k in range(len(fittedOrbit.referenceAlignmentSamplePullsEst)):
+            samplePulls = ROOT.TVectorD(4)
+            setPulls(samplePulls, fittedOrbit.referenceAlignmentSamplePullsEst[k])
+            self.referenceAlignmentSamplePullsEst.push_back(samplePulls)
+            self.referenceAlignmentSampleChi2Est.push_back(fittedOrbit.referenceAlignmentSampleChi2Est[k])
+
+        # (x, x', y, y') alignment sample covariance pulls at the reference
+        setPulls(self.referenceAlignmentSampleCovPullsTruth, fittedOrbit.referenceAlignmentSampleCovPullsTruth)
+
+        self.referenceAlignmentSampleCovPullsEst.clear()
+        for samplePullsEst in fittedOrbit.referenceAlignmentSampleCovPullsEst:
+            samplePulls = ROOT.TVectorD(4)
+            setPulls(samplePulls, samplePullsEst)
+            self.referenceAlignmentSampleCovPullsEst.push_back(samplePulls)
+
+        # (x, x', y, y') total pulls at the reference and their chi2
+        setPulls(self.referenceTotalPullsTruth, fittedOrbit.referenceTotalPullsTruth)
+        self.referenceTotalChi2Truth.value = fittedOrbit.referenceTotalChi2Truth
 
         # --------------------------------------------------------------
         # Set observable info
