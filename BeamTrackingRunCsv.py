@@ -187,7 +187,9 @@ for eventId,row in enumerate(dataReader):
             fitResY, 
             fitResBootstrapX, 
             fitResBootstrapY, 
-            eventId)
+            eventId,
+            0,
+            0)
 
     magnets = np.array([magnets[0], magnets[1], magnets[2], steerXcor[0]], dtype=float)
     beamWriter.write(orbit, magnets)

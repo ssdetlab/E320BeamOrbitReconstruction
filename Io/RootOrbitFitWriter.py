@@ -1,5 +1,5 @@
 import ROOT
-from ctypes import c_double, c_uint64
+from ctypes import c_double, c_uint32, c_uint64
 from Geometry.GeneralConstraints import GeneralConstraints
 
 import numpy as np
@@ -104,6 +104,10 @@ class RootOrbitFitWriter:
         # Event ID
         self.eventId = c_uint64(0)
 
+        # EUDAQ trigger number and run number of the event
+        self.trgN = c_uint64(0)
+        self.runNumber = c_uint32(0)
+
         # Magnets
         self.quad1Grad = c_double(0)
         self.quad2Grad = c_double(0)
@@ -180,6 +184,10 @@ class RootOrbitFitWriter:
 
         # Event ID
         self.tree.Branch("eventId", self.eventId, "eventId/l")
+
+        # EUDAQ trigger number and run number of the event
+        self.tree.Branch("trgN", self.trgN, "trgN/l")
+        self.tree.Branch("runNumber", self.runNumber, "runNumber/i")
 
         # Magnets
         self.tree.Branch("quad1Grad", self.quad1Grad, "quad1Grad/D")
@@ -375,6 +383,10 @@ class RootOrbitFitWriter:
 
         # Event ID
         self.eventId.value = fittedOrbit.eventId
+
+        # EUDAQ trigger number and run number of the event
+        self.trgN.value = fittedOrbit.trgN
+        self.runNumber.value = fittedOrbit.runNumber
 
         # Magnets
         self.quad1Grad.value = magnets[0]

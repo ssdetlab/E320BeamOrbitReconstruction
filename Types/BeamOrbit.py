@@ -14,7 +14,9 @@ class BeamOrbit:
             orbitFitY: BeamOrbitFitResult,
             orbitFitBootstrapX: BeamOrbitFitResult,
             orbitFitBootstrapY: BeamOrbitFitResult,
-            eventId) -> None:
+            eventId,
+            trgN,
+            runNumber) -> None:
         def getPlanesCov(
                 covX: npt.NDArray[np.float64], 
                 covY: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
@@ -189,3 +191,7 @@ class BeamOrbit:
 
         # Get event ID
         self.eventId = eventId
+
+        # Get EUDAQ trigger number and run number of the event
+        self.trgN = trgN
+        self.runNumber = runNumber

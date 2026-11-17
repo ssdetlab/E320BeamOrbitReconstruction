@@ -210,7 +210,9 @@ def processRun(
                 fitResY, 
                 fitResBootstrapX, 
                 fitResBootstrapY, 
-                idx)
+                idx,
+                clusters[0].trigN,
+                clusters[0].runNumber)
     
         beamWriter.write(orbit, magnets)
     
