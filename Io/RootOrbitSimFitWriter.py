@@ -79,9 +79,6 @@ class RootOrbitSimFitWriter:
         # not to be confused with the orbit covariance referenceCov
         self.referenceBeamBunchCov = ROOT.TMatrixD(4, 4)
 
-        # (local x, local y, phi, theta) measurement covariance at the reference
-        self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
-
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty
         self.referenceAlignmentCov = ROOT.TMatrixD(4, 4)
 
@@ -178,9 +175,6 @@ class RootOrbitSimFitWriter:
 
         # (local x, local y, phi, theta) covariance of the beam bunch parameters at the reference
         self.tree.Branch("referenceBeamBunchCov", self.referenceBeamBunchCov, bufSize, splitLvl)
-
-        # (local x, local y, phi, theta) measurement covariance at the reference
-        self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
 
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty
         self.tree.Branch("referenceAlignmentCov", self.referenceAlignmentCov, bufSize, splitLvl)
@@ -467,9 +461,6 @@ class RootOrbitSimFitWriter:
 
         # (local x, local y, phi, theta) covariance of the beam bunch parameters at the reference [mm, rad]
         setCov(self.referenceBeamBunchCov, getCovLocal(fittedOrbit.referenceBeamBunchCov))
-
-        # (local x, local y, phi, theta) measurement covariance at the reference [mm, rad]
-        setCov(self.referenceMeasurementCov, getCovLocal(fittedOrbit.referenceMeasurementCov))
 
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty [mm, rad]
         setCov(self.referenceAlignmentCov, getCovLocal(fittedOrbit.referenceAlignmentCov))

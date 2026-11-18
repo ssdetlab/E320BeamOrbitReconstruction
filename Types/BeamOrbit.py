@@ -128,7 +128,7 @@ class BeamOrbit:
         self.referenceBeamBunchCov = getPlanesCov(orbitFitX.beamBunchCov, orbitFitY.beamBunchCov)
 
         # Covariance at the reference due to the alignment uncertainty (x, x', y, y') [m, rad]
-        # (common to all events, not part of the measurement covariance)
+        # (common to all events)
         self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
 
         # Shifts at the reference for the alignment samples (x, x', y, y') [m, rad]
@@ -140,12 +140,8 @@ class BeamOrbit:
             self.referenceAlignmentSampleShifts[k,2:4] = orbitFitY.alignmentSampleShifts[k]
 
         # Covariance at the reference from the alignment samples (x, x', y, y') [m, rad]
-        # (common to all events, not part of the measurement covariance)
+        # (common to all events)
         self.referenceAlignmentSampleCov = getPlanesCov(orbitFitX.alignmentSampleCov, orbitFitY.alignmentSampleCov)
-
-        # Measurement covariance at the reference (x, x', y, y') [m, rad]
-        # (sum of the per-event components)
-        self.referenceMeasurementCov = self.referenceCov + self.referenceBeamBunchCov
 
         # --------------------------------------------------------------
         # Validation at the reference (x, x', y, y') [m, rad] 

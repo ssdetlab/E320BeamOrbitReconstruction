@@ -67,7 +67,7 @@ class SimConstraints:
 
     # Beam bunch parameters at the reference: spot size [m], 
     # angular divergence [rad], size-divergence correlation coefficient
-    # (setBeamBunchCov, 0 -> no contribution to the measurement covariance)
+    # (setBeamBunchCov, 0 -> zero bunch covariance)
     referenceBeamSizeLong = 0.0
     referenceBeamDivergenceLong = 0.0
     referenceBeamCorrelationLong = 0.0
