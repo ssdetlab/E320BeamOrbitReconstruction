@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import numpy.typing as npt
 from pathlib import Path
 
 from Io.E320RootBeamlineAlignmentWriter import E320RootBeamlineAlignmentWriter
@@ -17,7 +18,7 @@ from Io.E320RootBeamlineAlignmentReader import E320RootBeamlineAlignmentReader
 import csv
 
 # ------------------------------------------------------
-inFile = open("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/quad_scan_data_facet/daniel_sample_tanya/outFile.csv")
+inFile = open("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/quad_scan_data_facet/sm_quad_scan_no_steering/outFile.csv")
 dataReader = list(csv.reader(inFile, delimiter=",", quotechar='|'))
 
 nShots = len(dataReader)
@@ -32,14 +33,6 @@ for idx,row in enumerate(dataReader):
 
 print(bpmXs)
 print(quadGrads)
-
-# # ------------------------------------------------------
-# alignmentReaderCfg = E320RootBeamlineAlignmentReader.Config()
-# alignmentReaderCfg.treeName = "alignment-parameters"
-# alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/quad_bpm_alignment/daniel_sample/alignment/alignment-parameters.root"
-# 
-# alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
-# bpmCenterPrimary, bpmCenterLong, bpmCenterShort, quadCenterPrimary, quadCenterLong, quadCenterShort = alignmentReader.getBeamlineAlignment()
 
 # ------------------------------------------------------
 # quadSigmaConstraintShift = 0.1 * 1e-3
@@ -58,18 +51,6 @@ quadShiftsShort = np.array([
     0,
     0,
     0], dtype=np.float64)
-
-# quadShiftsLong = np.array([
-#     FacetConstraints.quad1CenterLong,
-#     FacetConstraints.quad2CenterLong,
-#     FacetConstraints.quad3CenterLong], dtype=np.float64)
-# quadShiftsShort = np.array([
-#     FacetConstraints.quad1CenterShort,
-#     FacetConstraints.quad2CenterShort,
-#     FacetConstraints.quad3CenterShort], dtype=np.float64)
-
-# quadShiftsLong = quadCenterLong
-# quadShiftsShort = quadCenterShort
 
 # Quad tilts, fixed in the alignment fit at the survey values [rad]
 quadTiltsLong = np.array([
@@ -206,19 +187,19 @@ for eventId,row in enumerate(dataReader):
 
     measX = np.array([row[0], row[1], row[2], row[3]], dtype=float)
     errsX = np.array(
-            [FacetConstraints.bpm0ResolutionShort, 
-             FacetConstraints.bpm1ResolutionShort, 
-             FacetConstraints.bpm2ResolutionShort, 
-             FacetConstraints.bpm3ResolutionShort])
+            [FacetConstraints.bpm0ResolutionEstShort, 
+             FacetConstraints.bpm1ResolutionEstShort, 
+             FacetConstraints.bpm2ResolutionEstShort, 
+             FacetConstraints.bpm3ResolutionEstShort])
     bpmShotsX.append(measX)
     bpmErrsX.append(errsX)
 
     measY = np.array([row[4], row[5], row[6], row[7]], dtype=float)
     errsY = np.array(
-            [FacetConstraints.bpm0ResolutionLong, 
-             FacetConstraints.bpm1ResolutionLong, 
-             FacetConstraints.bpm2ResolutionLong, 
-             FacetConstraints.bpm3ResolutionLong])
+            [FacetConstraints.bpm0ResolutionEstLong, 
+             FacetConstraints.bpm1ResolutionEstLong, 
+             FacetConstraints.bpm2ResolutionEstLong, 
+             FacetConstraints.bpm3ResolutionEstLong])
     bpmShotsY.append(measY)
     bpmErrsY.append(errsY)
 

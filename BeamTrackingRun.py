@@ -182,15 +182,15 @@ def processRun(
                  clusters[3].measurement[1]])
     
         bpmErrsX = np.array(
-                [np.sqrt(clusters[0].cov[0][0]), 
-                 np.sqrt(clusters[1].cov[0][0]), 
-                 np.sqrt(clusters[2].cov[0][0]), 
-                 np.sqrt(clusters[3].cov[0][0])])
+                [FacetConstraints.bpm0ResolutionEstShort, 
+                 FacetConstraints.bpm1ResolutionEstShort, 
+                 FacetConstraints.bpm2ResolutionEstShort, 
+                 FacetConstraints.bpm3ResolutionEstShort])
         bpmErrsY = np.array(
-                [np.sqrt(clusters[0].cov[1][1]), 
-                 np.sqrt(clusters[1].cov[1][1]), 
-                 np.sqrt(clusters[2].cov[1][1]), 
-                 np.sqrt(clusters[3].cov[1][1])])
+                [FacetConstraints.bpm0ResolutionEstLong, 
+                 FacetConstraints.bpm1ResolutionEstLong, 
+                 FacetConstraints.bpm2ResolutionEstLong, 
+                 FacetConstraints.bpm3ResolutionEstLong])
     
         fitResX = beamlineX.optimizeBeam(bpmMeasX, bpmErrsX, magnets)
         fitResY = beamlineY.optimizeBeam(bpmMeasY, bpmErrsY, magnets)
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     pathToDataDir = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_dataInRootFormat/local_alignment_data/raw/sig"
     
     pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                           "out_data/data/quad_bpm_alignment/sm_no_steering/"
+                           "out_data/data/bpm_alignment_doug_survey_quads/est_bpm_res_sm_no_steering/sm_no_steering/"
                            "alignment/alignment-parameters.root")
 
     # Alignment samples for the orbit shifts at the reference

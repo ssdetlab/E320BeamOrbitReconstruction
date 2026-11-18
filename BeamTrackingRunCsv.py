@@ -1,4 +1,5 @@
 import sys
+import csv
 import numpy as np
 from pathlib import Path
 
@@ -15,7 +16,6 @@ from Beamline.E320BeamlineFDF import E320BeamlineFDF
 from Io.RootOrbitFitWriter import RootOrbitFitWriter
 from Io.E320RootBeamlineAlignmentReader import E320RootBeamlineAlignmentReader
 from Types.BeamOrbit import BeamOrbit
-import csv
 
 # ------------------------------------------------------
 inFile = open("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/quad_scan_data_facet/sm_quad_scan_steering/outFile.csv")
@@ -37,7 +37,7 @@ print(quadGrads)
 # ------------------------------------------------------
 alignmentReaderCfg = E320RootBeamlineAlignmentReader.Config()
 alignmentReaderCfg.treeName = "alignment-parameters"
-alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/quad_bpm_alignment/sm_steering/alignment/alignment-parameters.root"
+alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/test/alignment-parameters.root"
 
 alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
 
@@ -159,15 +159,15 @@ for eventId,row in enumerate(dataReader):
     steerXcor = np.array([0], dtype=float)
 
     bpmErrsX = np.array(
-            [FacetConstraints.bpm0ResolutionShort, 
-             FacetConstraints.bpm1ResolutionShort, 
-             FacetConstraints.bpm2ResolutionShort, 
-             FacetConstraints.bpm3ResolutionShort])
+            [FacetConstraints.bpm0ResolutionEstShort, 
+             FacetConstraints.bpm1ResolutionEstShort, 
+             FacetConstraints.bpm2ResolutionEstShort, 
+             FacetConstraints.bpm3ResolutionEstShort])
     bpmErrsY = np.array(
-            [FacetConstraints.bpm0ResolutionLong, 
-             FacetConstraints.bpm1ResolutionLong, 
-             FacetConstraints.bpm2ResolutionLong, 
-             FacetConstraints.bpm3ResolutionLong])
+            [FacetConstraints.bpm0ResolutionEstLong, 
+             FacetConstraints.bpm1ResolutionEstLong, 
+             FacetConstraints.bpm2ResolutionEstLong, 
+             FacetConstraints.bpm3ResolutionEstLong])
 
     fitResX = beamlineX.optimizeBeam(bpmMeasX, bpmErrsX, magnets)
     fitResY = beamlineY.optimizeBeam(bpmMeasY, bpmErrsY, magnets)
