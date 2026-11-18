@@ -540,6 +540,8 @@ class E320Beamline(ABC):
         nSamples = len(self.alignmentSamples)
         if (np.any(self.alignmentCov != 0) or nSamples > 0):
             orbitDer = self.getOrbitResponseMatrix(bpmErrs, grads)
+        else: 
+            orbitDer = np.array(["None"])
 
         # Orbit covariance at the reference due to the alignment uncertainty, 
         # common to all events
