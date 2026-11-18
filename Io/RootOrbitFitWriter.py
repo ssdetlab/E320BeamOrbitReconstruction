@@ -111,7 +111,6 @@ class RootOrbitFitWriter:
         self.quad1Grad = c_double(0)
         self.quad2Grad = c_double(0)
         self.quad3Grad = c_double(0)
-        self.steerXCOR = c_double(0)
 
         # -------------------------------------------------------------
         # Branches
@@ -189,7 +188,6 @@ class RootOrbitFitWriter:
         self.tree.Branch("quad1Grad", self.quad1Grad, "quad1Grad/D")
         self.tree.Branch("quad2Grad", self.quad2Grad, "quad2Grad/D")
         self.tree.Branch("quad3Grad", self.quad3Grad, "quad3Grad/D")
-        self.tree.Branch("steerXCOR", self.steerXCOR, "steerXCOR/D")
 
     def __del__(self):
         self.file.Write()
@@ -385,7 +383,6 @@ class RootOrbitFitWriter:
         self.quad1Grad.value = magnets[0]
         self.quad2Grad.value = magnets[1]
         self.quad3Grad.value = magnets[2]
-        # self.steerXCOR.value = magnets[3]
 
         for idx in range(len(fittedOrbit.bpmMeas)):
             # Measurement hits

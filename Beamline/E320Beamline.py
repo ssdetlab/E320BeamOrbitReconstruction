@@ -115,7 +115,8 @@ class E320Beamline(ABC):
         self.bpmConstraintSigma[2] = np.inf
         self.bpmConstraintSigma[3] = np.inf
 
-        # Gaussian constraints on the quad shifts [m]
+        # Survey of the quad shifts and its precision [m],
+        # constrains the quad positions relative to the gauge
         # (sigma = np.inf -> unconstrained)
         self.quadShiftsConstraintMean = np.zeros(shape=(3), dtype=float)
         self.quadShiftsConstraintSigma = np.zeros(shape=(3), dtype=float)
@@ -303,10 +304,11 @@ class E320Beamline(ABC):
 
     def setQuadShiftsConstraints(self, means: npt.NDArray[np.float64], sigmas: npt.NDArray[np.float64]) -> None:
         """
-        Set Gaussian constraints on the quad shifts
+        Set the survey constraint on the quad shifts,
+        see getQuadShiftsConstraintChi2
 
-        means: constraint central values [m]
-        sigmas: constraint widths [m], np.inf -> unconstrained
+        means: survey quad shifts [m]
+        sigmas: survey precisions [m], np.inf -> unconstrained
         """
         self.quadShiftsConstraintMean[0] = means[0]
         self.quadShiftsConstraintMean[1] = means[1]
@@ -384,6 +386,48 @@ class E320Beamline(ABC):
         return: list of beamline parameters
         """
         return [self.quadShift, self.bpmShift, (self.energy / GeneralConstraints.e) / 1e9, self.quadLength, self.LQ, self.LB]
+
+    def getQuadCenters(self) -> npt.NDArray[np.float64]:
+        """
+        Quad centers along the primary axis with respect to BPM0
+
+        return: [quad0, quad1, quad2] centers [m]
+        """
+        centers = np.zeros(shape=(3), dtype=float)
+        start = 0.0
+        for i in range(3):
+            centers[i] = start + self.LQ[i] + 0.5 * self.quadLength[i]
+            start += self.LQ[i] + self.quadLength[i] + self.LB[i]
+        return centers
+
+    def getQuadShiftsConstraintChi2(self, pars: npt.NDArray[np.float64]) -> float:
+        """
+        Survey constraint on the quad shifts relative to the gauge
+
+        The survey frame is known only up to a translation and a tilt
+        with respect to the gauge, so the survey constrains only the
+        position of quad2 in the frame through quad0 and quad1:
+            q2 = shift2 - (1 - t) shift0 - t shift1, t = (z2 - z0) / (z1 - z0)
+        with z the quad centers. The survey prediction of q2 follows
+        from the survey shifts, its variance from the independent
+        survey precisions:
+            sigma2^2 + (1 - t)^2 sigma0^2 + t^2 sigma1^2
+        Any other pair of quads in the frame gives the same chi2
+
+        pars: alignment parameters in the getAlignmentPars order [m, rad]
+
+        return: chi2 of the constraint, 0 if a survey precision is np.inf
+        """
+        centers = self.getQuadCenters()
+        t = (centers[2] - centers[0]) / (centers[1] - centers[0])
+        coeffs = np.array([-(1 - t), -t, 1], dtype=float)
+
+        variance = np.sum((coeffs * self.quadShiftsConstraintSigma)**2)
+        if (np.isinf(variance)):
+            return 0.0
+
+        residual = coeffs @ (pars[4:7] - self.quadShiftsConstraintMean)
+        return float(residual**2 / variance)
 
     @abstractmethod
     def getBpms(self, start, quadGrads) -> list[float]:
@@ -651,7 +695,8 @@ class E320Beamline(ABC):
         Free parameters: setBpmFree, setQuadShiftsFree, setQuadTiltsFree
         (at least two parameters have to be fixed to remove the
         translation and tilt degeneracies)
-        Gaussian constraints: setBpmConstraints, setQuadConstraints
+        Gaussian constraints: setBpmConstraints, setQuadTiltsConstraints
+        Survey constraint relative to the gauge: setQuadShiftsConstraints
         Number of processes: setNumProcesses
 
         bpmShots: Nx4 array of bpm measurements [m]
@@ -713,6 +758,11 @@ class E320Beamline(ABC):
                 freeIdx.append(iPar)
         nFree = len(freeIdx)
 
+        # Quad shifts in the getAlignmentPars order, 
+        # the survey constraint applies if any of them is free
+        quadShiftsIdx = [4, 5, 6]
+        quadShiftsConstrained = np.any(free[quadShiftsIdx])
+
         def getFullPars(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
             pars = np.array(parsIni)
             for i in range(nFree):
@@ -722,9 +772,14 @@ class E320Beamline(ABC):
         def objective(x: npt.NDArray[np.float64]) -> float:
             pars = getFullPars(x)
             chi2 = self.getBeamlineChi2(pars, bpmShots, bpmErrs, quadGrads, pool)
-            # Gaussian constraints, sigma = np.inf -> no contribution
+            # Gaussian constraints on the BPM shifts and quad tilts, 
+            # sigma = np.inf -> no contribution
             for iPar in freeIdx:
-                chi2 += ((pars[iPar] - constraintMean[iPar]) / constraintSigma[iPar])**2
+                if (iPar not in quadShiftsIdx):
+                    chi2 += ((pars[iPar] - constraintMean[iPar]) / constraintSigma[iPar])**2
+            # Survey constraint on the quad shifts relative to the gauge
+            if (quadShiftsConstrained):
+                chi2 += self.getQuadShiftsConstraintChi2(pars)
             return float(chi2)
 
         def gradient(x: npt.NDArray[np.float64]):
