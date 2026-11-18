@@ -139,8 +139,11 @@ class BeamOrbitSim:
         # Orbit fit covariance at the reference (x, x', y, y') [m, rad]
         self.referenceCov = getPlanesCov(orbitFitX.referenceCov, orbitFitY.referenceCov)
 
-        # Beam covariance at the reference within one bunch (x, x', y, y') [m, rad]
-        self.referenceBeamCov = getPlanesCov(orbitFitX.beamCov, orbitFitY.beamCov)
+        # Covariance of the beam bunch parameters at the reference (x, x', y, y') [m, rad]:
+        # spot size, angular divergence and their correlation within one bunch.
+        # Not to be confused with the orbit covariance at the reference plane
+        # (referenceCov), the uncertainty of the reconstructed bunch centroid
+        self.referenceBeamBunchCov = getPlanesCov(orbitFitX.beamBunchCov, orbitFitY.beamBunchCov)
 
         # Covariance at the reference due to the alignment uncertainty (x, x', y, y') [m, rad]
         # (common to all events, not part of the measurement covariance)
@@ -160,7 +163,7 @@ class BeamOrbitSim:
 
         # Measurement covariance at the reference (x, x', y, y') [m, rad]
         # (sum of the per-event components)
-        self.referenceMeasurementCov = self.referenceCov + self.referenceBeamCov
+        self.referenceMeasurementCov = self.referenceCov + self.referenceBeamBunchCov
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst

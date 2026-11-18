@@ -65,9 +65,9 @@ class SimConstraints:
     # Al foil location [m]
     alFoilCenterPrimary = 0.0
 
-    # Beam at the reference within one bunch 
-    # (0 -> no contribution to the measurement covariance)
-    # size [m], divergence [rad], size-divergence correlation coefficient
+    # Beam bunch parameters at the reference: spot size [m], 
+    # angular divergence [rad], size-divergence correlation coefficient
+    # (setBeamBunchCov, 0 -> no contribution to the measurement covariance)
     referenceBeamSizeLong = 0.0
     referenceBeamDivergenceLong = 0.0
     referenceBeamCorrelationLong = 0.0
