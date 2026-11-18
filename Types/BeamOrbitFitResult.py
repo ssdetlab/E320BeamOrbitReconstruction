@@ -15,7 +15,7 @@ class BeamOrbitFitResult:
             referencePos: float,
             energyEst: float,
             chi2, 
-            beamCov: npt.NDArray[np.float64], 
+            beamBunchCov: npt.NDArray[np.float64], 
             alignmentOrbitCov: npt.NDArray[np.float64], 
             alignmentSampleShifts: npt.NDArray[np.float64], 
             alignmentSampleCov: npt.NDArray[np.float64]) -> None:
@@ -26,8 +26,11 @@ class BeamOrbitFitResult:
         self.energyEst = energyEst
         self.chi2 = chi2
 
-        # Beam (x, x') covariance at the reference within one bunch [m, rad]
-        self.beamCov = beamCov
+        # Covariance of the beam bunch parameters at the reference (x, x') [m, rad]:
+        # spot size, angular divergence and their correlation within one bunch.
+        # Not to be confused with the orbit covariance at the reference plane
+        # (referenceCov), the uncertainty of the reconstructed bunch centroid
+        self.beamBunchCov = beamBunchCov
 
         # (x, x') covariance at the reference due to the alignment uncertainty [m, rad]
         self.alignmentOrbitCov = alignmentOrbitCov

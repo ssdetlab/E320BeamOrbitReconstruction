@@ -73,8 +73,11 @@ class E320Beamline(ABC):
         self.referenceDist = 0
         self.toReference = FreePropagation(self.referenceDist)
 
-        # Beam (x, x') covariance at the reference within one bunch [m, rad]
-        self.beamCov = np.zeros(shape=(2, 2), dtype=float)
+        # Covariance of the beam bunch parameters at the reference (x, x') [m, rad]:
+        # spot size, angular divergence and their correlation within one bunch.
+        # Not to be confused with the orbit covariance at the reference plane,
+        # the uncertainty of the reconstructed bunch centroid
+        self.beamBunchCov = np.zeros(shape=(2, 2), dtype=float)
 
         # Alignment fit covariance in the getAlignmentPars order [m, rad]
         # (zero -> no alignment contribution to the orbit covariance)
@@ -210,19 +213,22 @@ class E320Beamline(ABC):
         self.referenceDist = distance
         self.toReference = FreePropagation(distance)
 
-    def setBeamCov(self, size: float, divergence: float, correlation: float) -> None:
+    def setBeamBunchCov(self, size: float, divergence: float, correlation: float) -> None:
         """
-        Set the (x, x') covariance of the beam at the reference 
-        within one bunch
+        Set the (x, x') covariance of the beam bunch parameters 
+        at the reference: spot size, angular divergence and their 
+        correlation within one bunch. Not to be confused with the 
+        orbit covariance at the reference plane, the uncertainty of 
+        the reconstructed bunch centroid
 
-        size: beam size [m]
-        divergence: beam divergence [rad]
+        size: bunch spot size [m]
+        divergence: bunch angular divergence [rad]
         correlation: size-divergence correlation coefficient
         """
-        self.beamCov[0,0] = size**2
-        self.beamCov[0,1] = correlation * size * divergence
-        self.beamCov[1,0] = correlation * size * divergence
-        self.beamCov[1,1] = divergence**2
+        self.beamBunchCov[0,0] = size**2
+        self.beamBunchCov[0,1] = correlation * size * divergence
+        self.beamBunchCov[1,0] = correlation * size * divergence
+        self.beamBunchCov[1,1] = divergence**2
 
     def setAlignmentCov(self, cov: npt.NDArray[np.float64]) -> None:
         """
@@ -567,7 +573,7 @@ class E320Beamline(ABC):
                 self.bpm0CenterPrimary + self.referenceDist, 
                 self.energy, 
                 chi2, 
-                np.array(self.beamCov), 
+                np.array(self.beamBunchCov), 
                 alignmentOrbitCov, 
                 alignmentSampleShifts, 
                 alignmentSampleCov)

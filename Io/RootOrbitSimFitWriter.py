@@ -74,8 +74,10 @@ class RootOrbitSimFitWriter:
         # Predicted (local x, local y, phi, theta) covariance at the reference
         self.referenceCov = ROOT.TMatrixD(4, 4)
 
-        # (local x, local y, phi, theta) beam covariance at the reference within one bunch
-        self.referenceBeamCov = ROOT.TMatrixD(4, 4)
+        # (local x, local y, phi, theta) covariance of the beam bunch parameters at the reference:
+        # spot size, angular divergence and their correlation within one bunch,
+        # not to be confused with the orbit covariance referenceCov
+        self.referenceBeamBunchCov = ROOT.TMatrixD(4, 4)
 
         # (local x, local y, phi, theta) measurement covariance at the reference
         self.referenceMeasurementCov = ROOT.TMatrixD(4, 4)
@@ -174,8 +176,8 @@ class RootOrbitSimFitWriter:
         # Predicted (local x, local y, phi, theta) covariance at the reference
         self.tree.Branch("referenceCov", self.referenceCov, bufSize, splitLvl)
 
-        # (local x, local y, phi, theta) beam covariance at the reference within one bunch
-        self.tree.Branch("referenceBeamCov", self.referenceBeamCov, bufSize, splitLvl)
+        # (local x, local y, phi, theta) covariance of the beam bunch parameters at the reference
+        self.tree.Branch("referenceBeamBunchCov", self.referenceBeamBunchCov, bufSize, splitLvl)
 
         # (local x, local y, phi, theta) measurement covariance at the reference
         self.tree.Branch("referenceMeasurementCov", self.referenceMeasurementCov, bufSize, splitLvl)
@@ -463,8 +465,8 @@ class RootOrbitSimFitWriter:
         # (local x, local y, phi, theta) covariance at the reference [mm, rad]
         setCov(self.referenceCov, referenceCov)
 
-        # (local x, local y, phi, theta) beam covariance at the reference within one bunch [mm, rad]
-        setCov(self.referenceBeamCov, getCovLocal(fittedOrbit.referenceBeamCov))
+        # (local x, local y, phi, theta) covariance of the beam bunch parameters at the reference [mm, rad]
+        setCov(self.referenceBeamBunchCov, getCovLocal(fittedOrbit.referenceBeamBunchCov))
 
         # (local x, local y, phi, theta) measurement covariance at the reference [mm, rad]
         setCov(self.referenceMeasurementCov, getCovLocal(fittedOrbit.referenceMeasurementCov))

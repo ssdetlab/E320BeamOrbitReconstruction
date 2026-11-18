@@ -161,7 +161,7 @@ def processRun(
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
-    beamlineX.setBeamCov(
+    beamlineX.setBeamBunchCov(
             SimConstraints.referenceBeamSizeShort, 
             SimConstraints.referenceBeamDivergenceShort, 
             SimConstraints.referenceBeamCorrelationShort)
@@ -179,7 +179,7 @@ def processRun(
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
-    beamlineY.setBeamCov(
+    beamlineY.setBeamBunchCov(
             SimConstraints.referenceBeamSizeLong, 
             SimConstraints.referenceBeamDivergenceLong, 
             SimConstraints.referenceBeamCorrelationLong)
