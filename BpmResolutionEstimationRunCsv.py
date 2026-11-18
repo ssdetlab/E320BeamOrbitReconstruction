@@ -1,4 +1,5 @@
 import sys
+import csv
 import numpy as np
 import numpy.typing as npt
 from pathlib import Path
@@ -14,8 +15,7 @@ from Geometry.GeneralConstraints import GeneralConstraints
 from Geometry.SimConstraints import SimConstraints
 from Beamline.E320BeamlineDFD import E320BeamlineDFD
 from Beamline.E320BeamlineFDF import E320BeamlineFDF
-from Io.E320RootMagneticFieldReader import E320RootMagneticFieldReader
-from Io.E320RootSimClusterReader import E320RootSimClusterReader
+from Geometry.FacetConstraints import FacetConstraints
 from Io.E320RootBeamlineAlignmentReader import E320RootBeamlineAlignmentReader
 
 ROOT.gSystem.Load("/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline_build/lib/libSimEventDict.so")
@@ -107,7 +107,10 @@ def fitBpmVariances(
 
     # Start from the unweighted fit, the Wishart weights from the sample covariances
     modelCovs = sampleCovs
-    for iteration in range(nIterations + 1):
+    variances = np.array([0])
+    weights = np.array([0])
+    normalMatrix = np.array([0])
+    for _ in range(nIterations + 1):
         weights = np.zeros(shape=(3 * nSettings, 3 * nSettings), dtype=np.float64)
         for g in range(nSettings):
             weights[3 * g:3 * g + 3, 3 * g:3 * g + 3] = np.linalg.inv(getWishartCov(modelCovs[g], nEvents[g]))
@@ -141,44 +144,13 @@ def fitBpmVariances(
         "pulls" : pulls.reshape(nSettings, 3)}
 
 def processRun(
-        pathToDataDir: str, 
-        dataTreeName: str, 
-        pathToMagDir: str, 
-        magTreeName: str, 
+        pathToInFile: str, 
         pathToAlignmentData: str, 
         alignmentTreeName: str, 
         gradientResolution: float,
         minEventsPerSetting: int) -> dict:
-    dataPathList = Path(pathToDataDir).rglob('*.root')
-    dataPaths = [str(path) for path in dataPathList]
-    dataPaths.sort()
-    for path in dataPaths:
-        print(path)
-    
-    dataReaderCfg = E320RootSimClusterReader.Config()
-    dataReaderCfg.treeName = dataTreeName
-    dataReaderCfg.minGeoId = 30
-    dataReaderCfg.maxGeoId = 33
-    dataReaderCfg.filePaths = dataPaths
-    
-    dataReader = E320RootSimClusterReader(dataReaderCfg)
-    print(dataReader.availableEvents())
-    
-    magPathList = Path(pathToMagDir).rglob('*.root')
-    magPaths = [str(path) for path in magPathList]
-    magPaths.sort()
-    for path in magPaths:
-        print(path)
-    
-    magReaderCfg = E320RootMagneticFieldReader.Config()
-    magReaderCfg.treeName = magTreeName
-    magReaderCfg.filePaths = magPaths
-    
-    magReader = E320RootMagneticFieldReader(magReaderCfg)
-    print(magReader.availableEvents())
-    
-    eventIdMin, eventIdMax = dataReader.availableEvents()
-    eventIdMax = eventIdMax + 1
+    inFile = open(pathToInFile)
+    dataReader = list(csv.reader(inFile, delimiter=",", quotechar='|'))
     
     # ------------------------------------------------------
     alignmentReaderCfg = E320RootBeamlineAlignmentReader.Config()
@@ -263,35 +235,23 @@ def processRun(
     residualMapX = defaultdict(list)
     residualMapY = defaultdict(list)
     gradientMap = defaultdict(list)
-    for eventId in range(eventIdMin, eventIdMax):
-        clusters = dataReader.read(eventId)
-        magnets = np.array(magReader.read(eventId))
-        
-        if len(clusters) != 4:
-            print(f"Skipping {eventId}: not enough clusters")
+    for eventId,row in enumerate(dataReader):
+        if (float(row[4]) > -1e-3):
             continue
-    
-        bpmMeasX = np.array(
-                [clusters[0].measurement[0], 
-                 clusters[1].measurement[0], 
-                 clusters[2].measurement[0], 
-                 clusters[3].measurement[0]])
-        bpmMeasY = np.array(
-                [clusters[0].measurement[1], 
-                 clusters[1].measurement[1], 
-                 clusters[2].measurement[1], 
-                 clusters[3].measurement[1]])
-    
+        bpmMeasX = np.array([row[0], row[1], row[2], row[3]], dtype=float)
+        bpmMeasY = np.array([row[4], row[5], row[6], row[7]], dtype=float)
+        magnets = np.array([row[8], row[9], row[10]], dtype=float)
+
         bpmErrsX = np.array(
-                [np.sqrt(clusters[0].cov[0][0]), 
-                 np.sqrt(clusters[1].cov[0][0]), 
-                 np.sqrt(clusters[2].cov[0][0]), 
-                 np.sqrt(clusters[3].cov[0][0])])
+                [FacetConstraints.bpm0ResolutionSurveyShort, 
+                 FacetConstraints.bpm1ResolutionSurveyShort, 
+                 FacetConstraints.bpm2ResolutionSurceyShort, 
+                 FacetConstraints.bpm3ResolutionSurveyShort])
         bpmErrsY = np.array(
-                [np.sqrt(clusters[0].cov[1][1]), 
-                 np.sqrt(clusters[1].cov[1][1]), 
-                 np.sqrt(clusters[2].cov[1][1]), 
-                 np.sqrt(clusters[3].cov[1][1])])
+                [FacetConstraints.bpm0ResolutionSurveyLong, 
+                 FacetConstraints.bpm1ResolutionSurveyLong, 
+                 FacetConstraints.bpm2ResolutionSurveyLong, 
+                 FacetConstraints.bpm3ResolutionSurveyLong])
     
         fitResX = beamlineX.optimizeBeam(bpmMeasX, bpmErrsX, magnets)
         fitResY = beamlineY.optimizeBeam(bpmMeasY, bpmErrsY, magnets)
@@ -312,7 +272,7 @@ def processRun(
         gradientMap[settingKey].append(magnets)
 
         if (eventId % 100 == 0):
-            print(f"{eventId}/{eventIdMax - eventIdMin}")
+            print(f"{eventId}")
 
     # ------------------------------------------------------
     # Regression of the residual covariances on the BPM variances per plane
@@ -375,19 +335,18 @@ def processRun(
     return results
 
 if __name__ == "__main__":
-    pathToDataDir = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_dataInRootFormat/sim/test/alignment_shifts/alignment/clusters"
-    
-    pathToMagDir = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_dataInRootFormat/sim/test/alignment_shifts/alignment/magnets"
-    
+    pathToInFile = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
+                    "quad_scan_data_facet/sm_quad_scan_steering/outFile.csv")
+    # pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
+    #                        "out_data/data/bpm_alignment_doug_survey_quads/survey_bpm_res/"
+    #                        "sm_no_steering/alignment/alignment-parameters.root")
     pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                           "out_data/sim/alignment_shifts/alignment/"
+                           "out_data/data/test/"
                            "alignment-parameters.root")
 
-    processRun(pathToDataDir = pathToDataDir,
-               dataTreeName = "clusters", 
-               pathToMagDir = pathToMagDir,
-               magTreeName = "magnets", 
+    processRun(pathToInFile = pathToInFile,
                pathToAlignmentData = pathToAlignmentData, 
                alignmentTreeName = "alignment-parameters", 
                gradientResolution = 1e-3,
                minEventsPerSetting = 10)
+
