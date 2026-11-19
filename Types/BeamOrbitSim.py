@@ -104,7 +104,7 @@ class BeamOrbitSim:
             self.residualsEst[i] = self.bpmMeas[i] - self.beamEst[i]
 
             # Calculate pulls
-            residualsEstCovTruth = np.array([[stateX.cov[0,0], 0], [0, stateY.cov[0, 0]]])
+            residualsEstCovTruth = np.array([[stateX.getBpmPredictionVar(), 0], [0, stateY.getBpmPredictionVar()]])
             residualsEstCov = self.bpmCovs[i] - residualsEstCovTruth
             residualsEstCovDiag = np.linalg.diagonal(residualsEstCov)
             self.pullsEst[i] = self.residualsEst[i] / np.sqrt(residualsEstCovDiag)

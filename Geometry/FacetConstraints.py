@@ -85,6 +85,37 @@ class FacetConstraints:
     # Al foil location
     alFoilCenterPrimary = 1992.325
 
+    # Steering response J: change of the effective alignment parameters 
+    # per unit change of the beam vector (x, x') at BPM0, rows in the 
+    # getAlignmentPars order, columns (x, x') [m/m, m/rad; rad/m, rad/rad] 
+    # (setSteeringResponse, 0 -> no correction; 
+    # estimate with SteeringResponseEstimationRunCsv.py)
+    steeringResponseLong = [
+        [0.0, 0.0], # bpm0 shift
+        [0.0, 0.0], # bpm1 shift
+        [0.0, 0.0], # bpm2 shift
+        [0.0, 0.0], # bpm3 shift
+        [0.0, 0.0], # quad1 shift
+        [0.0, 0.0], # quad2 shift
+        [0.0, 0.0], # quad3 shift
+        [0.0, 0.0], # quad1 tilt
+        [0.0, 0.0], # quad2 tilt
+        [0.0, 0.0], # quad3 tilt
+    ]
+
+    steeringResponseShort = [
+        [0.0, 0.0], # bpm0 shift
+        [0.0, 0.0], # bpm1 shift
+        [0.0, 0.0], # bpm2 shift
+        [0.0, 0.0], # bpm3 shift
+        [0.0, 0.0], # quad1 shift
+        [0.0, 0.0], # quad2 shift
+        [0.0, 0.0], # quad3 shift
+        [0.0, 0.0], # quad1 tilt
+        [0.0, 0.0], # quad2 tilt
+        [0.0, 0.0], # quad3 tilt
+    ]
+
     # Beam bunch parameters at the reference: spot size [m], 
     # angular divergence [rad], size-divergence correlation coefficient
     # (setBeamBunchCov, 0 -> zero bunch covariance)

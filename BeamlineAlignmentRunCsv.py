@@ -157,6 +157,7 @@ beamlineX.setBpmShifts(bpmShiftsShort)
 beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
 beamlineX.setQuadBPMDistances(quadToBPMLenght)
 beamlineX.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+beamlineX.setSteeringResponse(FacetConstraints.steeringResponseShort)
 
 # ------------------------------------------------------
 beamlineY = E320BeamlineFDF()
@@ -171,6 +172,7 @@ beamlineY.setBpmShifts(bpmShiftsLong)
 beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
 beamlineY.setQuadBPMDistances(quadToBPMLenght)
 beamlineY.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+beamlineY.setSteeringResponse(FacetConstraints.steeringResponseLong)
 
 # ------------------------------------------------------
 bpmShotsX = []

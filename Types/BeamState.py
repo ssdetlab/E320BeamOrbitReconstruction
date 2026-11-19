@@ -33,8 +33,13 @@ class BeamState:
 
         self.bpmPrediction = self.vec[0] - self.bpmShift
 
+        # Variance of the predicted BPM reading [m^2], the beam position 
+        # variance unless the BPM shift depends on the beam vector 
+        # (steering response, set by E320Beamline.setSteeredStateCovs)
+        self.bpmPredictionVar = self.cov[0,0]
+
     def getBpmPredictionVar(self) -> float:
         """
         Variance of the predicted BPM reading [m^2]
         """
-        return self.cov[0,0]
+        return self.bpmPredictionVar

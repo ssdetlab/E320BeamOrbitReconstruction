@@ -161,6 +161,7 @@ def processRun(
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineX.setSteeringResponse(SimConstraints.steeringResponseShort)
     beamlineX.setBeamBunchCov(
             SimConstraints.referenceBeamSizeShort, 
             SimConstraints.referenceBeamDivergenceShort, 
@@ -179,6 +180,7 @@ def processRun(
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineY.setSteeringResponse(SimConstraints.steeringResponseLong)
     beamlineY.setBeamBunchCov(
             SimConstraints.referenceBeamSizeLong, 
             SimConstraints.referenceBeamDivergenceLong, 
