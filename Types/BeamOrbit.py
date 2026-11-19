@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 from Geometry.GeneralConstraints import GeneralConstraints
-from Types.BeamOrbitFitResult import BeamOrbitFitResult
+from Types.BeamOrbitFitResult import BeamOrbitFitResult, getAlignmentSampleCov
 
 class BeamOrbit:
     """
@@ -176,14 +176,16 @@ class BeamOrbit:
             self.referenceAlignmentSamplePullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
             self.referenceAlignmentSampleChi2Est[k] = getChi2(self.referenceAlignmentSampleShifts[k], self.referenceAlignmentCov)
 
-        # Alignment samples, data: alignment sample shifts, covariance diag(half-range^2) 
-        # of the other samples (leave-one-out), defined for at least 3 samples
+        # Alignment samples, data: alignment sample shifts, covariance of the other 
+        # samples (leave-one-out, getAlignmentSampleCov per plane), defined for at least 3 samples
         self.referenceAlignmentSampleCovPullsEst = np.zeros(shape=(nSamples, 4), dtype=np.float64)
         if (nSamples >= 3):
             for k in range(nSamples):
                 otherShifts = np.delete(self.referenceAlignmentSampleShifts, k, axis=0)
-                halfRange = 0.5 * (np.max(otherShifts, axis=0) - np.min(otherShifts, axis=0))
-                self.referenceAlignmentSampleCovPullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], np.diag(halfRange**2))
+                otherCov = getPlanesCov(
+                        getAlignmentSampleCov(otherShifts[:,0:2], orbitFitX.alignmentSampleRmsThreshold), 
+                        getAlignmentSampleCov(otherShifts[:,2:4], orbitFitY.alignmentSampleRmsThreshold))
+                self.referenceAlignmentSampleCovPullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], otherCov)
 
         # Get energy estimate
         self.energyEst = orbitFitX.energyEst

@@ -124,6 +124,7 @@ def processRun(
             FacetConstraints.referenceBeamCorrelationShort)
     beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
     beamlineX.setAlignmentSamples(alignmentSamplesShort)
+    beamlineX.setAlignmentSampleRmsThreshold(FacetConstraints.alignmentSampleRmsThreshold)
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -143,6 +144,7 @@ def processRun(
             FacetConstraints.referenceBeamCorrelationLong)
     beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
     beamlineY.setAlignmentSamples(alignmentSamplesLong)
+    beamlineY.setAlignmentSampleRmsThreshold(FacetConstraints.alignmentSampleRmsThreshold)
     
     # ------------------------------------------------------
     outDir = Path(outDirPath + "/" + runPrefix)

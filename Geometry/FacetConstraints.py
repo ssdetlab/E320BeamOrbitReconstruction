@@ -126,3 +126,9 @@ class FacetConstraints:
     referenceBeamSizeShort = 0.0
     referenceBeamDivergenceShort = 0.0
     referenceBeamCorrelationShort = 0.0
+
+    # Alignment samples: the orbit covariance at the reference is 
+    # diag(RMS^2) of the sample shifts about the current alignment 
+    # for more than alignmentSampleRmsThreshold samples, 
+    # diag(half-range^2) otherwise (setAlignmentSampleRmsThreshold)
+    alignmentSampleRmsThreshold = 10

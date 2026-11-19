@@ -117,6 +117,7 @@ beamlineX.setBeamBunchCov(
         FacetConstraints.referenceBeamCorrelationShort)
 beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
 beamlineX.setAlignmentSamples(alignmentSamplesShort)
+beamlineX.setAlignmentSampleRmsThreshold(FacetConstraints.alignmentSampleRmsThreshold)
 
 # ------------------------------------------------------
 beamlineY = E320BeamlineFDF()
@@ -136,6 +137,7 @@ beamlineY.setBeamBunchCov(
         FacetConstraints.referenceBeamCorrelationLong)
 beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
 beamlineY.setAlignmentSamples(alignmentSamplesLong)
+beamlineY.setAlignmentSampleRmsThreshold(FacetConstraints.alignmentSampleRmsThreshold)
 
 # ------------------------------------------------------
 beamWriterCfg = RootOrbitFitWriter.Config()
