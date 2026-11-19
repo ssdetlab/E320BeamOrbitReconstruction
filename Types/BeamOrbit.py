@@ -131,6 +131,10 @@ class BeamOrbit:
         # (common to all events)
         self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
 
+        # Covariance at the reference of the gradient dependent systematic (x, x', y, y') [m, rad]
+        # (common to all events at the same gradients)
+        self.referenceGradientSystematicCov = getPlanesCov(orbitFitX.gradientSystematicCov, orbitFitY.gradientSystematicCov)
+
         # Shifts at the reference for the alignment samples (x, x', y, y') [m, rad]
         # (common to all events)
         nSamples = len(orbitFitX.alignmentSampleShifts)

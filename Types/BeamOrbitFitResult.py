@@ -38,7 +38,8 @@ class BeamOrbitFitResult:
             alignmentOrbitCov: npt.NDArray[np.float64], 
             alignmentSampleShifts: npt.NDArray[np.float64], 
             alignmentSampleCov: npt.NDArray[np.float64], 
-            alignmentSampleRmsThreshold: int) -> None:
+            alignmentSampleRmsThreshold: int, 
+            gradientSystematicCov: npt.NDArray[np.float64]) -> None:
         self.beamStates = beamStates
         self.referenceVec = referenceVec
         self.referenceCov = referenceCov
@@ -64,3 +65,7 @@ class BeamOrbitFitResult:
 
         # Number of alignment samples above which the RMS is used
         self.alignmentSampleRmsThreshold = alignmentSampleRmsThreshold
+
+        # (x, x') covariance at the reference of the gradient dependent 
+        # systematic, common to all events at the same gradients [m, rad]
+        self.gradientSystematicCov = gradientSystematicCov

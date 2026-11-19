@@ -82,6 +82,9 @@ class RootOrbitSimFitWriter:
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty
         self.referenceAlignmentCov = ROOT.TMatrixD(4, 4)
 
+        # (local x, local y, phi, theta) covariance at the reference of the gradient dependent systematic
+        self.referenceGradientSystematicCov = ROOT.TMatrixD(4, 4)
+
         # (local x, local y, phi, theta) shifts at the reference for the alignment samples
         self.referenceAlignmentSampleShifts = ROOT.std.vector("TVectorD")()
 
@@ -177,6 +180,9 @@ class RootOrbitSimFitWriter:
 
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty
         self.tree.Branch("referenceAlignmentCov", self.referenceAlignmentCov, bufSize, splitLvl)
+
+        # (local x, local y, phi, theta) covariance at the reference of the gradient dependent systematic
+        self.tree.Branch("referenceGradientSystematicCov", self.referenceGradientSystematicCov, bufSize, splitLvl)
 
         # (local x, local y, phi, theta) shifts at the reference for the alignment samples
         self.tree.Branch("referenceAlignmentSampleShifts", self.referenceAlignmentSampleShifts, bufSize, splitLvl)
@@ -462,6 +468,9 @@ class RootOrbitSimFitWriter:
 
         # (local x, local y, phi, theta) covariance at the reference due to the alignment uncertainty [mm, rad]
         setCov(self.referenceAlignmentCov, getCovLocal(fittedOrbit.referenceAlignmentCov))
+
+        # (local x, local y, phi, theta) covariance at the reference of the gradient dependent systematic [mm, rad]
+        setCov(self.referenceGradientSystematicCov, getCovLocal(fittedOrbit.referenceGradientSystematicCov))
 
         # (local x, local y, phi, theta) shifts at the reference for the alignment samples [mm, rad]
         self.referenceAlignmentSampleShifts.clear()
