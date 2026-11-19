@@ -3,6 +3,25 @@ import numpy.typing as npt
 
 from Types.BeamState import BeamState
 
+def getAlignmentSampleCov(shifts: npt.NDArray[np.float64], rmsThreshold: int) -> npt.NDArray[np.float64]:
+    """
+    Diagonal covariance of the orbit shifts for the alignment samples:
+    per component, the RMS of the shifts about the current alignment 
+    (shift = 0) for more than rmsThreshold samples, 
+    the half-range of the shifts otherwise
+
+    shifts: shifts with respect to the current alignment, 
+        one row per sample (at least one)
+    rmsThreshold: number of samples above which the RMS is used
+
+    return: diagonal covariance, diag(RMS^2) or diag(half-range^2)
+    """
+    if (len(shifts) > rmsThreshold):
+        width = np.sqrt(np.mean(shifts**2, axis=0))
+    else:
+        width = 0.5 * (np.max(shifts, axis=0) - np.min(shifts, axis=0))
+    return np.diag(width**2)
+
 class BeamOrbitFitResult:
     """
     Class containing simualted fitted beam orbit
@@ -18,7 +37,8 @@ class BeamOrbitFitResult:
             beamBunchCov: npt.NDArray[np.float64], 
             alignmentOrbitCov: npt.NDArray[np.float64], 
             alignmentSampleShifts: npt.NDArray[np.float64], 
-            alignmentSampleCov: npt.NDArray[np.float64]) -> None:
+            alignmentSampleCov: npt.NDArray[np.float64], 
+            alignmentSampleRmsThreshold: int) -> None:
         self.beamStates = beamStates
         self.referenceVec = referenceVec
         self.referenceCov = referenceCov
@@ -39,5 +59,8 @@ class BeamOrbitFitResult:
         self.alignmentSampleShifts = alignmentSampleShifts
 
         # (x, x') covariance at the reference from the alignment samples, 
-        # diag(half-range^2) [m, rad]
+        # diag(RMS^2) or diag(half-range^2), see getAlignmentSampleCov [m, rad]
         self.alignmentSampleCov = alignmentSampleCov
+
+        # Number of alignment samples above which the RMS is used
+        self.alignmentSampleRmsThreshold = alignmentSampleRmsThreshold

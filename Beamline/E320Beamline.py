@@ -1,6 +1,6 @@
 from Geometry.GeneralConstraints import GeneralConstraints
 from Beamline.FreePropagation import FreePropagation
-from Types.BeamOrbitFitResult import BeamOrbitFitResult
+from Types.BeamOrbitFitResult import BeamOrbitFitResult, getAlignmentSampleCov
 from Types.BeamState import BeamState
 
 import numpy as np
@@ -87,6 +87,10 @@ class E320Beamline(ABC):
         # in the getAlignmentPars order [m, rad]
         # (empty -> no alignment sample contribution)
         self.alignmentSamples = []
+
+        # Number of alignment samples above which the orbit covariance 
+        # of the samples is diag(RMS^2) instead of diag(half-range^2)
+        self.alignmentSampleRmsThreshold = 10
 
         # Free parameters of the alignment fit
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
@@ -253,6 +257,16 @@ class E320Beamline(ABC):
         self.alignmentSamples = []
         for sample in samples:
             self.alignmentSamples.append(np.array(sample, dtype=float))
+
+    def setAlignmentSampleRmsThreshold(self, threshold: int) -> None:
+        """
+        Set the number of alignment samples above which the orbit 
+        covariance of the samples is diag(RMS^2) of the shifts about 
+        the current alignment instead of diag(half-range^2)
+
+        threshold: number of samples
+        """
+        self.alignmentSampleRmsThreshold = threshold
 
     def setBpmFree(self, free: npt.NDArray[np.bool_]) -> None:
         """
@@ -601,16 +615,15 @@ class E320Beamline(ABC):
 
         # Orbit shifts at the reference for the alignment samples 
         # with respect to the current alignment, common to all events, 
-        # and their covariance diag(half-range^2)
+        # and their covariance diag(RMS^2) about the current alignment 
+        # above alignmentSampleRmsThreshold samples, diag(half-range^2) otherwise
         alignmentSampleShifts = np.zeros(shape=(nSamples, 2), dtype=float)
         alignmentSampleCov = np.zeros(shape=(2, 2), dtype=float)
         if (nSamples > 0):
             pars = self.getAlignmentPars()
             for k in range(nSamples):
                 alignmentSampleShifts[k] = orbitDer @ (self.alignmentSamples[k] - pars)
-            halfRange = 0.5 * (np.max(alignmentSampleShifts, axis=0) - np.min(alignmentSampleShifts, axis=0))
-            alignmentSampleCov[0,0] = halfRange[0]**2
-            alignmentSampleCov[1,1] = halfRange[1]**2
+            alignmentSampleCov = getAlignmentSampleCov(alignmentSampleShifts, self.alignmentSampleRmsThreshold)
 
         return BeamOrbitFitResult(
                 states, 
@@ -622,7 +635,8 @@ class E320Beamline(ABC):
                 np.array(self.beamBunchCov), 
                 alignmentOrbitCov, 
                 alignmentSampleShifts, 
-                alignmentSampleCov)
+                alignmentSampleCov, 
+                self.alignmentSampleRmsThreshold)
 
     def getBeamlineChi2Block(self, bpmShots, bpmErrs, quadGrads):
         """

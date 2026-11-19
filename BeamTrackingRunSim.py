@@ -167,6 +167,7 @@ def processRun(
             SimConstraints.referenceBeamCorrelationShort)
     beamlineX.setAlignmentCov(alignmentReader.getAlignmentCovShort())
     beamlineX.setAlignmentSamples(alignmentSamplesShort)
+    beamlineX.setAlignmentSampleRmsThreshold(SimConstraints.alignmentSampleRmsThreshold)
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -185,6 +186,7 @@ def processRun(
             SimConstraints.referenceBeamCorrelationLong)
     beamlineY.setAlignmentCov(alignmentReader.getAlignmentCovLong())
     beamlineY.setAlignmentSamples(alignmentSamplesLong)
+    beamlineY.setAlignmentSampleRmsThreshold(SimConstraints.alignmentSampleRmsThreshold)
     
     # ------------------------------------------------------
     outDir = Path(outDirPath)
