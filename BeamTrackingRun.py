@@ -117,6 +117,7 @@ def processRun(
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineX.setSteeringResponse(FacetConstraints.steeringResponseShort)
     beamlineX.setBeamBunchCov(
             FacetConstraints.referenceBeamSizeShort, 
             FacetConstraints.referenceBeamDivergenceShort, 
@@ -135,6 +136,7 @@ def processRun(
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineY.setSteeringResponse(FacetConstraints.steeringResponseLong)
     beamlineY.setBeamBunchCov(
             FacetConstraints.referenceBeamSizeLong, 
             FacetConstraints.referenceBeamDivergenceLong, 

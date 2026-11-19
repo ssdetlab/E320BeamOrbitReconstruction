@@ -10,14 +10,20 @@ class E320BeamlineDFD(E320Beamline):
         super().__init__() 
 
     def getBpms(self, start, quadGrads) -> list[float]:
+        # Effective alignment for this beam vector (see setSteeringResponse)
+        pars = self.getSteeredAlignmentPars(start)
+        bpmShift = pars[0:4]
+        quadShift = pars[4:7]
+        quadTilt = pars[7:10]
+
         iniVector = np.zeros(shape=(1,2),dtype=float) 
         iniVector[0,0] = start[0]
         iniVector[0,1] = start[1]
 
-        BPM0 = iniVector[0,0] - self.bpmShift[0]
+        BPM0 = iniVector[0,0] - bpmShift[0]
 
-        quad1Shift = self.quadShift[0]
-        quad1Tilt = self.quadTilt[0]
+        quad1Shift = quadShift[0]
+        quad1Tilt = quadTilt[0]
         espec = FreePropagation(self.LQ[0])
         espec = DefocusQuadrupole(
                 quadGrads[0], 
@@ -27,10 +33,10 @@ class E320BeamlineDFD(E320Beamline):
                 quad1Tilt) * espec
         espec = FreePropagation(self.LB[0]) * espec
         result1 = espec.propagate(iniVector)
-        BPM1 = result1[0,0] - self.bpmShift[1]
+        BPM1 = result1[0,0] - bpmShift[1]
 
-        quad2Shift = self.quadShift[1]
-        quad2Tilt = self.quadTilt[1]
+        quad2Shift = quadShift[1]
+        quad2Tilt = quadTilt[1]
         espec = FreePropagation(self.LQ[1])
         espec = FocusQuadrupole(
                 quadGrads[1], 
@@ -40,10 +46,10 @@ class E320BeamlineDFD(E320Beamline):
                 quad2Tilt) * espec
         espec = FreePropagation(self.LB[1]) * espec
         result2 = espec.propagate(result1)
-        BPM2 = result2[0,0] - self.bpmShift[2]
+        BPM2 = result2[0,0] - bpmShift[2]
 
-        quad3Shift = self.quadShift[2]
-        quad3Tilt = self.quadTilt[2]
+        quad3Shift = quadShift[2]
+        quad3Tilt = quadTilt[2]
         espec = FreePropagation(self.LQ[2]) 
         espec = DefocusQuadrupole(
                 quadGrads[2], 
@@ -53,7 +59,7 @@ class E320BeamlineDFD(E320Beamline):
                 quad3Tilt) * espec
         espec = FreePropagation(self.LB[2]) * espec
         result3 = espec.propagate(result2)
-        BPM3 = result3[0,0] - self.bpmShift[3]
+        BPM3 = result3[0,0] - bpmShift[3]
 
         return [BPM0, BPM1, BPM2, BPM3]
     
@@ -67,6 +73,12 @@ class E320BeamlineDFD(E320Beamline):
 
         return: list of the beam states at the BPMs
         """
+        # Effective alignment for this beam vector (see setSteeringResponse)
+        pars = self.getSteeredAlignmentPars(vec)
+        bpmShift = pars[0:4]
+        quadShift = pars[4:7]
+        quadTilt = pars[7:10]
+
         iniVector = np.zeros(shape=(1,2),dtype=float) 
         iniVector[0,0] = vec[0]
         iniVector[0,1] = vec[1]
@@ -76,13 +88,13 @@ class E320BeamlineDFD(E320Beamline):
                 bpmIdx = 0, 
                 vec = iniVector[0,:], 
                 cov = np.array(cov), 
-                bpmShift = self.bpmShift[0], 
+                bpmShift = bpmShift[0], 
                 bpmMeas = bpmMeas[0], 
                 bpmErr = bpmErrs[0], 
                 energy = self.energy))
 
-        quad1Shift = self.quadShift[0]
-        quad1Tilt = self.quadTilt[0]
+        quad1Shift = quadShift[0]
+        quad1Tilt = quadTilt[0]
         espec = FreePropagation(self.LQ[0])
         espec = DefocusQuadrupole(
                 quadGrads[0], 
@@ -97,13 +109,13 @@ class E320BeamlineDFD(E320Beamline):
                 bpmIdx = 1, 
                 vec = result1[0,:], 
                 cov = cov1, 
-                bpmShift = self.bpmShift[1], 
+                bpmShift = bpmShift[1], 
                 bpmMeas = bpmMeas[1], 
                 bpmErr = bpmErrs[1], 
                 energy = self.energy))
 
-        quad2Shift = self.quadShift[1]
-        quad2Tilt = self.quadTilt[1]
+        quad2Shift = quadShift[1]
+        quad2Tilt = quadTilt[1]
         espec = FreePropagation(self.LQ[1])
         espec = FocusQuadrupole(
                 quadGrads[1], 
@@ -118,13 +130,13 @@ class E320BeamlineDFD(E320Beamline):
                 bpmIdx = 2, 
                 vec = result2[0,:], 
                 cov = cov2, 
-                bpmShift = self.bpmShift[2], 
+                bpmShift = bpmShift[2], 
                 bpmMeas = bpmMeas[2], 
                 bpmErr = bpmErrs[2], 
                 energy = self.energy))
 
-        quad3Shift = self.quadShift[2]
-        quad3Tilt = self.quadTilt[2]
+        quad3Shift = quadShift[2]
+        quad3Tilt = quadTilt[2]
         espec = FreePropagation(self.LQ[2]) 
         espec = DefocusQuadrupole(
                 quadGrads[2], 
@@ -139,7 +151,7 @@ class E320BeamlineDFD(E320Beamline):
                 bpmIdx = 3, 
                 vec = result3[0,:], 
                 cov = cov3, 
-                bpmShift = self.bpmShift[3], 
+                bpmShift = bpmShift[3], 
                 bpmMeas = bpmMeas[3], 
                 bpmErr = bpmErrs[3], 
                 energy = self.energy))

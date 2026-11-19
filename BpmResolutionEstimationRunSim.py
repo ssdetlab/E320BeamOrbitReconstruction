@@ -247,6 +247,7 @@ def processRun(
     beamlineX.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineX.setSteeringResponse(SimConstraints.steeringResponseShort)
     
     # ------------------------------------------------------
     beamlineY = E320BeamlineFDF()
@@ -259,6 +260,7 @@ def processRun(
     beamlineY.setFreeSpaceQuadDistances(freeToQuadLenght)
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(SimConstraints.bpm0CenterPrimary, referenceDistance)
+    beamlineY.setSteeringResponse(SimConstraints.steeringResponseLong)
     
     # ------------------------------------------------------
     # Fit residuals grouped by the magnet setting,

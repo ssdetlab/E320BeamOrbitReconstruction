@@ -79,6 +79,11 @@ class E320Beamline(ABC):
         # the uncertainty of the reconstructed bunch centroid
         self.beamBunchCov = np.zeros(shape=(2, 2), dtype=float)
 
+        # Steering response: change of the effective alignment parameters 
+        # (getAlignmentPars order) per unit change of the beam vector (x, x') 
+        # at BPM0 [m/m, m/rad; rad/m, rad/rad] (0 -> no correction)
+        self.steeringResponse = np.zeros(shape=(10, 2), dtype=float)
+
         # Alignment fit covariance in the getAlignmentPars order [m, rad]
         # (zero -> no alignment contribution to the orbit covariance)
         self.alignmentCov = np.zeros(shape=(10, 10), dtype=float)
@@ -231,6 +236,24 @@ class E320Beamline(ABC):
         self.beamBunchCov[1,0] = correlation * size * divergence
         self.beamBunchCov[1,1] = divergence**2
 
+    def setSteeringResponse(self, response) -> None:
+        """
+        Set the steering response J: the change of the effective 
+        alignment parameters per unit change of the beam vector (x, x') 
+        at BPM0. The beamline is evaluated at the effective alignment 
+            p + J (x, x')
+        so the BPM prediction stays affine in the beam vector:
+            bpms = b0 + B p + (A + B J) (x, x')
+        The response absorbs the dependence of the alignment on the 
+        steering condition (0 -> no correction)
+
+        response: 10x2 matrix J, rows in the getAlignmentPars order, 
+            columns (x, x') [m/m, m/rad; rad/m, rad/rad]
+        """
+        for i in range(10):
+            for j in range(2):
+                self.steeringResponse[i,j] = response[i][j]
+
     def setAlignmentCov(self, cov: npt.NDArray[np.float64]) -> None:
         """
         Set the alignment fit covariance propagated to the orbit 
@@ -378,6 +401,47 @@ class E320Beamline(ABC):
         self.setBpmShifts(pars[0:4])
         self.setQuadShifts(pars[4:7])
         self.setQuadTilts(pars[7:10])
+
+    def getSteeredAlignmentPars(self, start) -> npt.NDArray[np.float64]:
+        """
+        Effective alignment parameters seen by the beam vector start, 
+        p + J start (see setSteeringResponse)
+
+        start: beam vector (x, x') at BPM0 [m, rad]
+
+        return: alignment parameters in the getAlignmentPars order [m, rad]
+        """
+        return self.getAlignmentPars() + self.steeringResponse @ np.array([start[0], start[1]], dtype=float)
+
+    def setSteeredStateCovs(self, states, bpmMeas, bpmErrs, vec, cov, quadGrads) -> None:
+        """
+        Covariances of the beam states with a steering response: 
+        the effective alignment depends on the beam vector, so the 
+        state vectors and the BPM predictions are propagated with 
+        the effective transfer from BPM0, obtained from unit steps 
+        of the beam vector (exact, the states are affine in it)
+
+        states: beam states from getBeamStates at vec, updated in place
+        bpmMeas: bpm measurements [m]
+        bpmErrs: bpm measurement errors [m]
+        vec: beam vector (x, x') at BPM0 [m, rad]
+        cov: covariance of the beam vector at BPM0
+        quadGrads: quadrupole gradients [T/m]
+        """
+        steps = []
+        for k in range(2):
+            step = np.array(vec, dtype=float)
+            step[k] += 1
+            steps.append(self.getBeamStates(bpmMeas, bpmErrs, step, cov, quadGrads))
+
+        for i, state in enumerate(states):
+            stateDer = np.zeros(shape=(2, 2), dtype=float)
+            predictionDer = np.zeros(shape=(2), dtype=float)
+            for k in range(2):
+                stateDer[:,k] = steps[k][i].vec - state.vec
+                predictionDer[k] = steps[k][i].bpmPrediction - state.bpmPrediction
+            state.cov = stateDer @ cov @ stateDer.T
+            state.bpmPredictionVar = predictionDer @ cov @ predictionDer
 
     def getPars(self):
         """
@@ -585,6 +649,8 @@ class E320Beamline(ABC):
         vec = self.toReference.propagate(beamVec[None,:])[0]
         cov = self.toReference.ABCD @ beamCov @ self.toReference.ABCD.T
         states = self.getBeamStates(bpmMeas, bpmErrs, beamVec, beamCov, grads)
+        if (np.any(self.steeringResponse != 0)):
+            self.setSteeredStateCovs(states, bpmMeas, bpmErrs, beamVec, beamCov, grads)
 
         # Response of the orbit at the reference to the alignment parameters
         nSamples = len(self.alignmentSamples)
