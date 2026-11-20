@@ -238,8 +238,6 @@ def processRun(
     residualMapY = defaultdict(list)
     gradientMap = defaultdict(list)
     for eventId,row in enumerate(dataReader):
-        if (float(row[4]) > -1e-3):
-            continue
         bpmMeasX = np.array([row[0], row[1], row[2], row[3]], dtype=float)
         bpmMeasY = np.array([row[4], row[5], row[6], row[7]], dtype=float)
         magnets = np.array([row[8], row[9], row[10]], dtype=float)
