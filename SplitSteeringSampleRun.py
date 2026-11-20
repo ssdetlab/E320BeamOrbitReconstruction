@@ -11,27 +11,7 @@ sys.path.insert(0, str(project_dir / "Geometry"))
 sys.path.insert(0, str(project_dir / "Beamline"))
 
 # --------------------------------------------------------------
-# Gradient dependent systematic of the reference orbit.
-#
-# Per steering condition c the alignment p_c is fitted with the corrected
-# model (steering response from the constraints) and the orbit at the
-# reference is reconstructed per shot with p_c. The true orbit at the
-# reference does not depend on the gradients (the reference is upstream of
-# the quads), so the mean orbit of the gradient setting g,
-#     a_g = v_c + T w_c(G_g) + noise,
-# varies over the settings only through the part of the mismodelling the
-# alignment fit is blind to (T w_c, w_c the error of the fitted beam vector
-# at BPM0). With the deviations a_g - <a> over the N settings,
-#     spread = sum_g (a_g - <a>)(a_g - <a>)^T / (N - 1),
-#     noise = sum_g C_g / n_g / N (C_g the shot covariance of setting g),
-#     alignment = sum_g (S_g - <S>) V_p (S_g - <S>)^T / N
-# (S_g the orbit response to the alignment, V_p the alignment covariance:
-# the gradient dependent part of the statistical alignment error, already in
-# the alignment covariance), the systematic over the gradient set is
-#     C_G = (N - 1) / N (spread - noise) - alignment,
-# clipped to positive semi-definite. The part common to all settings is not
-# measurable (it is indistinguishable from v_c). The covariances of the
-# conditions are averaged.
+# Split the steering sample into multiple files with different steering conditions
 
 # --------------------------------------------------------------
 def splitSteeringConditions(
