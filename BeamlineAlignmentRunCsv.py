@@ -16,7 +16,9 @@ from Beamline.E320BeamlineFDF import E320BeamlineFDF
 import csv
 
 # ------------------------------------------------------
-inFile = open("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/quad_scan_data_facet/sm_quad_scan_no_steering/outFile.csv")
+inFilePath = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
+              "quad_scan_data_facet/sm_quad_scan_no_steering/outFile.csv")
+inFile = open(inFilePath)
 dataReader = list(csv.reader(inFile, delimiter=",", quotechar='|'))
 
 nShots = len(dataReader)
@@ -108,9 +110,6 @@ bpmShiftsShort = np.array([
     0,
     0,
     0], dtype=np.float64)
-
-# bpmShiftsLong = bpmCenterLong
-# bpmShiftsShort = bpmCenterShort
 
 freeToQuadLenght = np.array([
     (FacetConstraints.quad1CenterPrimary - FacetConstraints.quad1HalfPrimary) - FacetConstraints.bpm0CenterPrimary,
