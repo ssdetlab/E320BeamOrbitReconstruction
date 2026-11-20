@@ -92,7 +92,7 @@ class FacetConstraints:
 
     # Survey precision of the quads, used as the widths of the 
     # survey constraints in the alignment fits
-    quadSurveySigmaShift = 100 * 1e-6 # [m]
+    quadSurveySigmaShift = 0.1 * 1e-3 # [m]
     quadSurveySigmaTilt = 1 * 1e-3 # [rad]
 
     # PICENT location
@@ -109,11 +109,11 @@ class FacetConstraints:
     steeringResponseLong = [
         [0.000000e+00, 0.0], # bpm0 shift
         [0.000000e+00, 0.0], # bpm1 shift
-        [-2.670746e-01, 0.0], # bpm2 shift
-        [-2.916478e-01, 0.0], # bpm3 shift
-        [-1.678677e-01, 0.0], # quad1 shift
-        [-3.535279e-01, 0.0], # quad2 shift
-        [-2.407361e-01, 0.0], # quad3 shift
+        [-2.676824e-01, 0.0], # bpm2 shift
+        [-2.940162e-01, 0.0], # bpm3 shift
+        [-1.678738e-01, 0.0], # quad1 shift
+        [-3.520131e-01, 0.0], # quad2 shift
+        [-2.424632e-01, 0.0], # quad3 shift
         [0.000000e+00, 0.0], # quad1 tilt
         [0.000000e+00, 0.0], # quad2 tilt
         [0.000000e+00, 0.0], # quad3 tilt
@@ -135,12 +135,12 @@ class FacetConstraints:
     # at the reference [m^2, m rad; m rad, rad^2] (setGradientSystematicCov, 
     # 0 -> no contribution; estimate with GradientSystematicEstimationRunCsv.py)
     gradientSystematicCovLong = [
-        [2.667868e-11, -1.208210e-11],
-        [-1.208210e-11, 1.530671e-11],
+        [2.668391e-11, -1.208138e-11],
+        [-1.208138e-11, 1.530059e-11],
     ]
     gradientSystematicCovShort = [
-        [6.307852e-11, -3.136790e-11],
-        [-3.136790e-11, 3.048678e-11],
+        [6.307348e-11, -3.137739e-11],
+        [-3.137739e-11, 3.047041e-11],
     ]
 
     # Beam bunch parameters at the reference: spot size [m], 
