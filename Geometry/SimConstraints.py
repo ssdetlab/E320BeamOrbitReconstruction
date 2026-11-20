@@ -59,6 +59,11 @@ class SimConstraints:
     quad2Yaw = -2 * 1e-3
     quad3Yaw = 2 * 1e-3
 
+    # Survey precision of the quads, used as the widths of the 
+    # survey constraints in the alignment fits
+    quadSurveySigmaShift = 100 * 1e-6 # [m]
+    quadSurveySigmaTilt = 1 * 1e-3 # [rad]
+
     # --------------------------------------------------------------
     # Reference
 

@@ -93,8 +93,8 @@ def makeBeamline(plane: str) -> E320Beamline:
 
     return: beamline
     """
-    quadSigmaConstraintShift = np.inf
-    quadSigmaConstraintTilt = np.inf
+    quadSigmaConstraintShift = FacetConstraints.quadSurveySigmaShift
+    quadSigmaConstraintTilt = FacetConstraints.quadSurveySigmaTilt
 
     beamEnergy = 10 * 1e9 * GeneralConstraints.e
 
