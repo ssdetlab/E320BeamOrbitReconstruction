@@ -97,6 +97,11 @@ class E320Beamline(ABC):
         # of the samples is diag(RMS^2) instead of diag(half-range^2)
         self.alignmentSampleRmsThreshold = 10
 
+        # Gradient dependent systematic of the reference orbit (x, x') [m, rad]:
+        # spread over the gradient settings of the mismodelling the alignment 
+        # fit is blind to (common to all events, 0 -> no contribution)
+        self.gradientSystematicCov = np.zeros(shape=(2, 2), dtype=float)
+
         # Free parameters of the alignment fit
         # (fixed BPM0 and BPM1 define the gauge: translation + tilt)
         self.bpmFree = np.zeros(shape=(4), dtype=bool)
@@ -257,6 +262,19 @@ class E320Beamline(ABC):
         for i in range(10):
             for j in range(2):
                 self.steeringResponse[i,j] = response[i][j]
+
+    def setGradientSystematicCov(self, cov) -> None:
+        """
+        Set the (x, x') covariance at the reference of the gradient 
+        dependent systematic: the spread over the gradient settings of 
+        the mismodelling the alignment fit is blind to, estimated with 
+        GradientSystematicEstimationRunCsv.py (0 -> no contribution)
+
+        cov: 2x2 covariance [m, rad]
+        """
+        for i in range(2):
+            for j in range(2):
+                self.gradientSystematicCov[i,j] = cov[i][j]
 
     def setAlignmentCov(self, cov: npt.NDArray[np.float64]) -> None:
         """
@@ -702,7 +720,8 @@ class E320Beamline(ABC):
                 alignmentOrbitCov, 
                 alignmentSampleShifts, 
                 alignmentSampleCov, 
-                self.alignmentSampleRmsThreshold)
+                self.alignmentSampleRmsThreshold, 
+                np.array(self.gradientSystematicCov))
 
     def getBeamlineChi2Block(self, bpmShots, bpmErrs, quadGrads):
         """

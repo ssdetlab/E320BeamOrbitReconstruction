@@ -118,6 +118,7 @@ def processRun(
     beamlineX.setQuadBPMDistances(quadToBPMLenght)
     beamlineX.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
     beamlineX.setSteeringResponse(FacetConstraints.steeringResponseShort)
+    beamlineX.setGradientSystematicCov(FacetConstraints.gradientSystematicCovShort)
     beamlineX.setBeamBunchCov(
             FacetConstraints.referenceBeamSizeShort, 
             FacetConstraints.referenceBeamDivergenceShort, 
@@ -138,6 +139,7 @@ def processRun(
     beamlineY.setQuadBPMDistances(quadToBPMLenght)
     beamlineY.setReferenceDistance(FacetConstraints.bpm0CenterPrimary, referenceDistance)
     beamlineY.setSteeringResponse(FacetConstraints.steeringResponseLong)
+    beamlineY.setGradientSystematicCov(FacetConstraints.gradientSystematicCovLong)
     beamlineY.setBeamBunchCov(
             FacetConstraints.referenceBeamSizeLong, 
             FacetConstraints.referenceBeamDivergenceLong, 

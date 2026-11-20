@@ -96,6 +96,18 @@ class SimConstraints:
         [0.0, 0.0], # quad3 tilt
     ]
 
+    # Gradient dependent systematic of the reference orbit: (x, x') covariance 
+    # at the reference [m^2, m rad; m rad, rad^2] (setGradientSystematicCov, 
+    # 0 -> no contribution; estimate with GradientSystematicEstimationRunCsv.py)
+    gradientSystematicCovLong = [
+        [0.0, 0.0],
+        [0.0, 0.0],
+    ]
+    gradientSystematicCovShort = [
+        [0.0, 0.0],
+        [0.0, 0.0],
+    ]
+
     # Beam bunch parameters at the reference: spot size [m], 
     # angular divergence [rad], size-divergence correlation coefficient
     # (setBeamBunchCov, 0 -> zero bunch covariance)

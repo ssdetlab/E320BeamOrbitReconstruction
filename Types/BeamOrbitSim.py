@@ -149,6 +149,10 @@ class BeamOrbitSim:
         # (common to all events)
         self.referenceAlignmentCov = getPlanesCov(orbitFitX.alignmentOrbitCov, orbitFitY.alignmentOrbitCov)
 
+        # Covariance at the reference of the gradient dependent systematic (x, x', y, y') [m, rad]
+        # (common to all events at the same gradients)
+        self.referenceGradientSystematicCov = getPlanesCov(orbitFitX.gradientSystematicCov, orbitFitY.gradientSystematicCov)
+
         # Shifts at the reference for the alignment samples (x, x', y, y') [m, rad]
         # (common to all events)
         nSamples = len(orbitFitX.alignmentSampleShifts)
@@ -252,8 +256,9 @@ class BeamOrbitSim:
                         getAlignmentSampleCov(otherShifts[:,2:4], orbitFitY.alignmentSampleRmsThreshold))
                 self.referenceAlignmentSampleCovPullsEst[k] = getPulls(self.referenceAlignmentSampleShifts[k], otherCov)
 
-        # Total: residuals with respect to the true orbit, 
-        # covariance referenceCov + referenceAlignmentCov, ndf 4
+        # Total: residuals with respect to the true orbit, covariance 
+        # referenceCov + referenceAlignmentCov + referenceGradientSystematicCov, ndf 4
         totalResidualsTruth = self.referenceVecTruth - referenceVecEst
-        self.referenceTotalPullsTruth = getPulls(totalResidualsTruth, self.referenceCov + self.referenceAlignmentCov)
-        self.referenceTotalChi2Truth = getChi2(totalResidualsTruth, self.referenceCov + self.referenceAlignmentCov)
+        totalCov = self.referenceCov + self.referenceAlignmentCov + self.referenceGradientSystematicCov
+        self.referenceTotalPullsTruth = getPulls(totalResidualsTruth, totalCov)
+        self.referenceTotalChi2Truth = getChi2(totalResidualsTruth, totalCov)
