@@ -43,13 +43,24 @@ class FacetConstraints:
     bpm3ResolutionSurveyShort = 0.15 * 1e-3
 
     # Estimated resolution of the BPMs [m]
-    # SM scan, no steering
-    bpm0ResolutionEstLong = 4.91 * 1e-6
-    bpm1ResolutionEstLong = 5.89 * 1e-6
-    bpm2ResolutionEstLong = 14.12 * 1e-6
-    bpm3ResolutionEstLong = 13.86 * 1e-6
+    # # SM scan, no steering
+    # bpm0ResolutionEstLong = 4.91 * 1e-6
+    # bpm1ResolutionEstLong = 5.89 * 1e-6
+    # bpm2ResolutionEstLong = 14.12 * 1e-6
+    # bpm3ResolutionEstLong = 13.86 * 1e-6
 
-    bpm0ResolutionEstShort = 4.91 * 1e-6
+    # bpm0ResolutionEstShort = 4.91 * 1e-6
+    # bpm1ResolutionEstShort = 6.45 * 1e-6
+    # bpm2ResolutionEstShort = 15.06 * 1e-6
+    # bpm3ResolutionEstShort = 14.02 * 1e-6
+
+    # SM scan, no steering, SM steering steering response
+    bpm0ResolutionEstLong = 5.63 * 1e-6
+    bpm1ResolutionEstLong = 6.07 * 1e-6
+    bpm2ResolutionEstLong = 14.11 * 1e-6
+    bpm3ResolutionEstLong = 13.80 * 1e-6
+
+    bpm0ResolutionEstShort = 5.63 * 1e-6
     bpm1ResolutionEstShort = 6.45 * 1e-6
     bpm2ResolutionEstShort = 15.06 * 1e-6
     bpm3ResolutionEstShort = 14.02 * 1e-6
@@ -91,18 +102,17 @@ class FacetConstraints:
     # (setSteeringResponse, 0 -> no correction; 
     # estimate with SteeringResponseEstimationRunCsv.py)
     steeringResponseLong = [
-        [0.0, 0.0], # bpm0 shift
-        [0.0, 0.0], # bpm1 shift
-        [0.0, 0.0], # bpm2 shift
-        [0.0, 0.0], # bpm3 shift
-        [0.0, 0.0], # quad1 shift
-        [0.0, 0.0], # quad2 shift
-        [0.0, 0.0], # quad3 shift
-        [0.0, 0.0], # quad1 tilt
-        [0.0, 0.0], # quad2 tilt
-        [0.0, 0.0], # quad3 tilt
+        [0.000000e+00, 0.0], # bpm0 shift
+        [0.000000e+00, 0.0], # bpm1 shift
+        [-2.670746e-01, 0.0], # bpm2 shift
+        [-2.916478e-01, 0.0], # bpm3 shift
+        [-1.678677e-01, 0.0], # quad1 shift
+        [-3.535279e-01, 0.0], # quad2 shift
+        [-2.407361e-01, 0.0], # quad3 shift
+        [0.000000e+00, 0.0], # quad1 tilt
+        [0.000000e+00, 0.0], # quad2 tilt
+        [0.000000e+00, 0.0], # quad3 tilt
     ]
-
     steeringResponseShort = [
         [0.0, 0.0], # bpm0 shift
         [0.0, 0.0], # bpm1 shift
@@ -120,23 +130,23 @@ class FacetConstraints:
     # at the reference [m^2, m rad; m rad, rad^2] (setGradientSystematicCov, 
     # 0 -> no contribution; estimate with GradientSystematicEstimationRunCsv.py)
     gradientSystematicCovLong = [
-        [0.0, 0.0],
-        [0.0, 0.0],
+        [2.667868e-11, -1.208210e-11],
+        [-1.208210e-11, 1.530671e-11],
     ]
     gradientSystematicCovShort = [
-        [0.0, 0.0],
-        [0.0, 0.0],
+        [6.307852e-11, -3.136790e-11],
+        [-3.136790e-11, 3.048678e-11],
     ]
 
     # Beam bunch parameters at the reference: spot size [m], 
     # angular divergence [rad], size-divergence correlation coefficient
     # (setBeamBunchCov, 0 -> zero bunch covariance)
-    referenceBeamSizeLong = 0.0
-    referenceBeamDivergenceLong = 0.0
+    referenceBeamSizeLong = 0.03 * 1e-3
+    referenceBeamDivergenceLong = 1.0 * 1e-6
     referenceBeamCorrelationLong = 0.0
 
-    referenceBeamSizeShort = 0.0
-    referenceBeamDivergenceShort = 0.0
+    referenceBeamSizeShort = 0.03 * 1e-3
+    referenceBeamDivergenceShort = 1.0 * 1e-6
     referenceBeamCorrelationShort = 0.0
 
     # Alignment samples: the orbit covariance at the reference is 
