@@ -35,11 +35,8 @@ print(bpmXs)
 print(quadGrads)
 
 # ------------------------------------------------------
-# quadSigmaConstraintShift = 0.1 * 1e-3
-# quadSigmaConstraintTilt = 1e-3
-
-quadSigmaConstraintShift = np.inf
-quadSigmaConstraintTilt = np.inf
+quadSigmaConstraintShift = FacetConstraints.quadSurveySigmaShift
+quadSigmaConstraintTilt = FacetConstraints.quadSurveySigmaTilt
 
 beamEnergy = 10 * 1e9 * GeneralConstraints.e
 

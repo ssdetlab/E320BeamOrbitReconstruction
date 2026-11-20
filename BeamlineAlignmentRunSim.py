@@ -68,9 +68,9 @@ eventIdMin, eventIdMax = dataReader.availableEvents()
 eventIdMax = eventIdMax + 1
 
 # ------------------------------------------------------
-# Survey precision of the emulated survey (placeholders)
-surveySigmaShift = 0.1e-3 # [m]
-surveySigmaTilt = 1e-3 # [rad]
+# Survey precision of the emulated survey
+surveySigmaShift = SimConstraints.quadSurveySigmaShift # [m]
+surveySigmaTilt = SimConstraints.quadSurveySigmaTilt # [rad]
 
 quadSigmaConstraintShift = surveySigmaShift
 quadSigmaConstraintTilt = surveySigmaTilt

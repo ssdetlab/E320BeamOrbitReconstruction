@@ -79,6 +79,11 @@ class FacetConstraints:
     quad2Yaw = 0
     quad3Yaw = 0
 
+    # Survey precision of the quads, used as the widths of the 
+    # survey constraints in the alignment fits
+    quadSurveySigmaShift = 100 * 1e-6 # [m]
+    quadSurveySigmaTilt = 1 * 1e-3 # [rad]
+
     # PICENT location
     piccentCenterPrimary = 1992.825
 
