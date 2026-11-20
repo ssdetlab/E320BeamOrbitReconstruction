@@ -18,7 +18,9 @@ from Io.E320RootBeamlineAlignmentReader import E320RootBeamlineAlignmentReader
 from Types.BeamOrbit import BeamOrbit
 
 # ------------------------------------------------------
-inFile = open("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/quad_scan_data_facet/sm_quad_scan_steering/outFile.csv")
+inFilePath = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
+              "quad_scan_data_facet/sm_quad_scan_no_steering/outFile.csv")
+inFile = open(inFilePath)
 dataReader = list(csv.reader(inFile, delimiter=",", quotechar='|'))
 
 nShots = len(dataReader)
@@ -35,9 +37,12 @@ print(bpmXs)
 print(quadGrads)
 
 # ------------------------------------------------------
+alignmentFilePath = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
+                     "out_data/data/global_2026_data/beamline_preparations/bpm_res_est/"
+                     "sm_no_steering_pre_steering_response/alignment-parameters.root")
 alignmentReaderCfg = E320RootBeamlineAlignmentReader.Config()
 alignmentReaderCfg.treeName = "alignment-parameters"
-alignmentReaderCfg.filePath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/test/alignment-parameters.root"
+alignmentReaderCfg.filePath = alignmentFilePath
 
 alignmentReader = E320RootBeamlineAlignmentReader(alignmentReaderCfg)
 
@@ -161,8 +166,6 @@ for eventId,row in enumerate(dataReader):
     bpmMeasX = np.array([row[0], row[1], row[2], row[3]], dtype=float)
     bpmMeasY = np.array([row[4], row[5], row[6], row[7]], dtype=float)
     magnets = np.array([row[8], row[9], row[10]], dtype=float)
-    # steerXcor = np.array([row[11]], dtype=float)
-    steerXcor = np.array([0], dtype=float)
 
     bpmErrsX = np.array(
             [FacetConstraints.bpm0ResolutionEstShort, 
@@ -197,7 +200,7 @@ for eventId,row in enumerate(dataReader):
             0,
             0)
 
-    magnets = np.array([magnets[0], magnets[1], magnets[2], steerXcor[0]], dtype=float)
+    magnets = np.array([magnets[0], magnets[1], magnets[2]], dtype=float)
     beamWriter.write(orbit, magnets)
 
     if (eventId % 100 == 0):
