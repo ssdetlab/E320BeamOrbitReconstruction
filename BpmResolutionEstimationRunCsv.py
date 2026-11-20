@@ -336,10 +336,7 @@ def processRun(
 
 if __name__ == "__main__":
     pathToInFile = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                    "quad_scan_data_facet/sm_quad_scan_steering/outFile.csv")
-    # pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-    #                        "out_data/data/bpm_alignment_doug_survey_quads/survey_bpm_res/"
-    #                        "sm_no_steering/alignment/alignment-parameters.root")
+                    "quad_scan_data_facet/sm_quad_scan_no_steering/outFile.csv")
     pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
                            "out_data/data/test/"
                            "alignment-parameters.root")

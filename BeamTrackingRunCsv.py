@@ -38,8 +38,8 @@ print(quadGrads)
 
 # ------------------------------------------------------
 alignmentFilePath = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                     "out_data/data/global_2026_data/beamline_preparations/bpm_res_est/"
-                     "sm_no_steering_pre_steering_response/alignment-parameters.root")
+                     "out_data/data/global_2026_data/beamline_preparations/alignment/"
+                     "sm_no_steering/alignment-parameters.root")
 alignmentReaderCfg = E320RootBeamlineAlignmentReader.Config()
 alignmentReaderCfg.treeName = "alignment-parameters"
 alignmentReaderCfg.filePath = alignmentFilePath

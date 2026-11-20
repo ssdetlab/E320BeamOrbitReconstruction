@@ -229,19 +229,21 @@ if __name__ == "__main__":
     pathToDataDir = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_dataInRootFormat/local_alignment_data/raw/sig"
     
     pathToAlignmentData = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                           "out_data/data/bpm_alignment_doug_survey_quads/est_bpm_res_sm_no_steering/sm_no_steering/"
-                           "alignment/alignment-parameters.root")
+                           "out_data/data/global_2026_data/beamline_preparations/alignment/"
+                           "sm_no_steering/alignment-parameters.root")
 
     # Alignment samples for the orbit shifts at the reference
     # (empty -> no alignment sample contribution)
     pathsToAlignmentSamples = []
     pathToSystematicAlignmentSamplesDir = ("/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/"
-                                        "out_data/data/global_2026_data/beamline_preparations/systematic_alignment_samples")
-    systematicAlignmentSamplesPaths = Path(pathToSystematicAlignmentSamplesDir).rglob('*.csv')
+                                           "out_data/data/global_2026_data/beamline_preparations/systematic_alignment_samples")
+    systematicAlignmentSamplesPaths = Path(pathToSystematicAlignmentSamplesDir).rglob('*.root')
+    print("Systematic alignment:")
     for path in systematicAlignmentSamplesPaths:
         pathsToAlignmentSamples.append(str(path))
+        print(path)
     
-    outDirPath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/global_2026_data"
+    outDirPath = "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_bpm_analysis/out_data/data/global_2026_data/data"
 
     runDirsList = Path(pathToDataDir).rglob('data_Run*')
     for path in runDirsList:

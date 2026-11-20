@@ -409,7 +409,7 @@ if __name__ == "__main__":
                     "quad_scan_data_facet/sm_quad_scan_steering/outFile.csv")
 
     processRun(pathToInFile = pathToInFile,
-               plane = "Long", 
+               plane = "Short", 
                gradientResolution = 1e-3, 
                minShotsPerSetting = 10, 
                minSettings = 5)
