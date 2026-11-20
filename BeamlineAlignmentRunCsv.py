@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-import numpy.typing as npt
 from pathlib import Path
 
 from Io.E320RootBeamlineAlignmentWriter import E320RootBeamlineAlignmentWriter
@@ -14,7 +13,6 @@ from Geometry.GeneralConstraints import GeneralConstraints
 from Geometry.FacetConstraints import FacetConstraints
 from Beamline.E320BeamlineDFD import E320BeamlineDFD
 from Beamline.E320BeamlineFDF import E320BeamlineFDF
-from Io.E320RootBeamlineAlignmentReader import E320RootBeamlineAlignmentReader
 import csv
 
 # ------------------------------------------------------
